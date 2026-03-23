@@ -1,3 +1,6 @@
+export { serializeGraphForLLM, identifyPatterns } from './serializer.js';
+export { evaluateGraph } from './eval.js';
+
 // ── Enums ──
 
 export enum NodeType {
@@ -114,11 +117,80 @@ export interface CanvasDocument {
   updated_at: string;
 }
 
+// ── Comment & decision types ──
+
+export interface CommentMessage {
+  id: string;
+  author: string;
+  text: string;
+  timestamp: string;
+}
+
+export interface CommentThread {
+  id: string;
+  anchor: { type: 'node'; id: string };
+  status: 'open' | 'resolved' | 'wontfix';
+  messages: CommentMessage[];
+}
+
+export interface DecisionRecord {
+  id: string;
+  timestamp: string;
+  author: string;
+  thread_id: string;
+  summary: string;
+  rationale: string;
+  node_ids: string[];
+}
+
 // ── Handle definitions ──
 
 export interface HandleDef {
   inputs: string[];
   outputs: string[];
+}
+
+// ── Pattern & Eval interfaces ──
+
+export interface Pattern {
+  id: string;
+  name: string;
+  category: 'orchestration' | 'reasoning' | 'memory' | 'safety';
+  description: string;
+  when_to_use: string[];
+  when_not_to_use: string[];
+  trade_offs: {
+    token_cost: 'low' | 'medium' | 'high' | 'variable';
+    latency: 'low' | 'medium' | 'high' | 'variable';
+    reliability: 'low' | 'medium' | 'high' | 'variable';
+    complexity: 'low' | 'medium' | 'high' | 'variable';
+    adaptability: 'low' | 'medium' | 'high' | 'variable';
+  };
+  failure_modes: string[];
+  compatible_with: string[];
+  conflicts_with: string[];
+  example_graph: { nodes: GraphNode[]; edges: GraphEdge[] };
+  eval_profile: {
+    tokens_per_step: [number, number, number];
+    steps_per_task: [number, number, number];
+    p50_latency_ms: number;
+    p99_latency_ms: number;
+    failure_rate: number;
+  };
+}
+
+export interface Scorecard {
+  cost: { min: number; median: number; max: number; currency: 'USD' };
+  latency_p50_ms: number;
+  latency_p99_ms: number;
+  reliability: number;
+  complexity: number;
+}
+
+export interface PatternMatch {
+  patternId: string;
+  confidence: number;
+  involvedNodeIds: string[];
 }
 
 export const NODE_HANDLES: Record<NodeType, HandleDef> = {

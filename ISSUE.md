@@ -1,48 +1,66 @@
-# Issue #35: S-01: Scaffold monorepo with pnpm workspaces
+# Issue #49: A-01: Author 6 pattern library YAML files
 
-https://github.com/tlepoid/Refract/issues/35
+https://github.com/tlepoid/Refract/issues/49
 
 ---
 
 ## Context
-This is the first task in the entire project. Every other agent depends on this landing cleanly.
+The pattern library is the structured knowledge that the AI reasons over and the eval engine scores against. These are not documentation — they are machine-readable data.
 
 ## Task
-Scaffold a monorepo with three packages:
-- `packages/app` — Next.js 15 (App Router) + TypeScript + Tailwind v4
-- `packages/server` — Express.js + TypeScript
-- `packages/shared` — Shared TypeScript types (no runtime deps)
+Create 6 YAML files in `packages/shared/patterns/`, one per pattern:
 
-Set up:
-- pnpm workspaces (`pnpm-workspace.yaml`)
-- Root `tsconfig.json` with project references
-- `.gitignore`, `.nvmrc` (Node 20), `.prettierrc`
-- Basic `docker-compose.yml` with PostgreSQL 16
+1. **react.yaml** — ReAct (Reasoning + Acting)
+2. **plan-execute.yaml** — Plan-and-Execute
+3. **multi-agent-chat.yaml** — Multi-agent group chat
+4. **handoff.yaml** — Handoff orchestration
+5. **routing.yaml** — Semantic/rule-based routing
+6. **reflection.yaml** — Self-reflection loop
+
+Each file must follow this exact schema:
+```yaml
+id: react
+name: ReAct
+category: orchestration  # orchestration | reasoning | memory | safety
+description: |
+  2 paragraphs describing the pattern
+when_to_use:
+  - Dynamic tasks where the solution path is not predictable
+  - Tasks requiring exploration and adaptation
+when_not_to_use:
+  - Predictable workflows with known steps
+  - Cost-sensitive applications
+trade_offs:
+  token_cost: high       # low | medium | high | variable
+  latency: high
+  reliability: medium
+  complexity: medium
+  adaptability: high
+failure_modes:
+  - Infinite reasoning loops without convergence
+  - Excessive token consumption on simple tasks
+compatible_with:
+  - reflection
+  - routing
+conflicts_with:
+  - plan-execute
+example_graph:
+  nodes: [...]           # minimal GraphNode[] demonstrating the pattern
+  edges: [...]           # minimal GraphEdge[]
+eval_profile:
+  tokens_per_step: [200, 800, 2000]    # [min, median, max]
+  steps_per_task: [3, 7, 20]
+  p50_latency_ms: 3500
+  p99_latency_ms: 15000
+  failure_rate: 0.08
+```
 
 ## Acceptance criteria
-- [ ] `pnpm install` succeeds from root
-- [ ] `pnpm --filter app dev` starts Next.js on localhost:3000
-- [ ] `pnpm --filter server dev` starts Express on localhost:4000
-- [ ] Importing from `@refract/shared` works in both app and server
-- [ ] Docker compose brings up PostgreSQL
+- [ ] All 6 files pass YAML lint (`yamllint`)
+- [ ] All files conform to the schema (validate with a JSON schema or test)
+- [ ] eval_profile numbers are realistic (based on published benchmarks and the technical plan's pattern comparison table)
+- [ ] example_graph uses valid GraphNode/GraphEdge types from shared
+- [ ] Each pattern has at least 3 when_to_use, 2 when_not_to_use, and 2 failure_modes
 
-## Files to create
-```
-pnpm-workspace.yaml
-tsconfig.json
-docker-compose.yml
-packages/app/package.json
-packages/app/tsconfig.json
-packages/app/src/app/page.tsx
-packages/app/src/app/layout.tsx
-packages/app/tailwind.config.ts
-packages/server/package.json
-packages/server/tsconfig.json
-packages/server/src/index.ts
-packages/shared/package.json
-packages/shared/tsconfig.json
-packages/shared/src/index.ts
-```
-
-## Agent instructions
-This issue blocks ALL other work. Ship it fast, keep it minimal. Do not add any UI beyond a blank page. Do not install ReactFlow, Yjs, or any other dependency — those belong to other agents.
+## Dependencies
+- Blocked by: #2 (shared types — for example_graph node/edge types)
