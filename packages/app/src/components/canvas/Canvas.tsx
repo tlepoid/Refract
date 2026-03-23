@@ -29,6 +29,8 @@ import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { pushSnapshot } from '../../stores/undoRedoMiddleware';
 import { useGhostElements, SuggestionActions } from './SuggestionOverlay';
 import { MermaidModal } from '../panels/MermaidModal';
+import { ComparisonMode } from './ComparisonMode';
+import { useComparisonStore } from '../../stores/comparisonStore';
 import type { BaseNodeData } from './BaseNode';
 
 const rfNodeTypes = getReactFlowNodeTypes();
@@ -282,6 +284,19 @@ function CanvasInner() {
           >
             Import
           </button>
+          <div style={{ width: 1, background: '#2D2D3F', margin: '2px 0' }} />
+          <button
+            onClick={() => {
+              const { nodes, edges } = useGraphStore.getState();
+              if (nodes.length > 0) {
+                useComparisonStore.getState().startComparison(nodes, edges);
+              }
+            }}
+            style={toolbarButtonStyle}
+            title="Compare designs"
+          >
+            Compare
+          </button>
         </div>
 
         <ReactFlow
@@ -358,6 +373,12 @@ const toolbarButtonStyle: React.CSSProperties = {
 };
 
 export function Canvas() {
+  const comparisonActive = useComparisonStore((s) => s.active);
+
+  if (comparisonActive) {
+    return <ComparisonMode />;
+  }
+
   return (
     <ReactFlowProvider>
       <CanvasInner />
