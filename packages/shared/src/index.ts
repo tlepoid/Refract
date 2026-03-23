@@ -1,3 +1,5 @@
+export { serializeGraphForLLM, identifyPatterns } from './serializer.js';
+
 // ── Enums ──
 
 export enum NodeType {
