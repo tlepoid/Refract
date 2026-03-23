@@ -1,173 +1,203 @@
-import { NodeType, EdgeType } from './enums.js';
 import type { GraphNode, GraphEdge } from './index.js';
+import { NodeType, EdgeType } from './enums.js';
 
-// ── Default configs per node type ──
+// ── Export: Graph → Mermaid ──
 
-const DEFAULT_CONFIGS: Record<NodeType, Record<string, unknown>> = {
-  [NodeType.LLM]: { model: 'claude-sonnet-4', temperature: 0.7, max_tokens: 4096, system_prompt: '' },
-  [NodeType.TOOL]: { name: '', description: '', input_schema: {}, timeout_ms: 30000 },
-  [NodeType.MEMORY]: { type: 'buffer', capacity: 100, ttl: 3600 },
-  [NodeType.ROUTER]: { strategy: 'llm', routes: [] },
-  [NodeType.PLANNER]: { pattern: 'react', max_steps: 10 },
-  [NodeType.GUARDRAIL]: { type: 'input', rules: [], action: 'warn' },
-  [NodeType.HUMAN_IN_LOOP]: { approval_type: 'binary', timeout: 300, escalation_path: '' },
-  [NodeType.INPUT]: { description: '' },
-  [NodeType.OUTPUT]: { description: '' },
+const NODE_SHAPE: Record<string, (id: string, label: string) => string> = {
+  [NodeType.LLM]: (id, label) => `${id}("${label}")`,
+  [NodeType.TOOL]: (id, label) => `${id}[["${label}"]]`,
+  [NodeType.MEMORY]: (id, label) => `${id}[("${label}")]`,
+  [NodeType.ROUTER]: (id, label) => `${id}{"${label}"}`,
+  [NodeType.PLANNER]: (id, label) => `${id}(["${label}"])`,
+  [NodeType.GUARDRAIL]: (id, label) => `${id}[/"${label}"/]`,
+  [NodeType.HUMAN_IN_LOOP]: (id, label) => `${id}>"${label}"]`,
+  [NodeType.INPUT]: (id, label) => `${id}([["${label}"]])`,
+  [NodeType.OUTPUT]: (id, label) => `${id}([["${label}"]])`,
 };
 
-// ── Class definition colors per node type ──
-
-const NODE_COLORS: Record<NodeType, string> = {
-  [NodeType.LLM]: '#6366f1',
-  [NodeType.TOOL]: '#f59e0b',
-  [NodeType.MEMORY]: '#10b981',
-  [NodeType.ROUTER]: '#ec4899',
-  [NodeType.PLANNER]: '#8b5cf6',
-  [NodeType.GUARDRAIL]: '#ef4444',
-  [NodeType.HUMAN_IN_LOOP]: '#06b6d4',
-  [NodeType.INPUT]: '#22c55e',
-  [NodeType.OUTPUT]: '#f97316',
+const EDGE_LINK: Record<string, string> = {
+  [EdgeType.DATA_FLOW]: '-->',
+  [EdgeType.CONTROL_FLOW]: '-.->',
+  [EdgeType.TOOL_CALL]: '==>',
+  [EdgeType.MEMORY_OP]: '-.->',
 };
 
-// ── Node shape wrappers by type ──
-
-function wrapNodeShape(id: string, label: string, type: NodeType): string {
-  const displayLabel = `${label} (${type})`;
-  switch (type) {
-    case NodeType.INPUT:
-      return `${id}(("${displayLabel}"))`;
-    case NodeType.OUTPUT:
-      return `${id}[/"${displayLabel}"/]`;
-    case NodeType.ROUTER:
-      return `${id}{"${displayLabel}"}`;
-    case NodeType.GUARDRAIL:
-    case NodeType.HUMAN_IN_LOOP:
-      return `${id}[["${displayLabel}"]]`;
-    default:
-      return `${id}["${displayLabel}"]`;
-  }
-}
-
-// ── Export: graph -> Mermaid ──
-
-/**
- * Converts a graph of nodes and edges into a Mermaid flowchart string.
- *
- * Node shapes are determined by their type, labels include a type suffix,
- * and classDef directives provide color coding per node type.
- */
 export function graphToMermaid(nodes: GraphNode[], edges: GraphEdge[]): string {
-  const lines: string[] = ['graph LR'];
+  const lines: string[] = ['flowchart TD'];
 
-  // Node definitions
+  // Sanitize node IDs for Mermaid (replace hyphens, keep alphanumeric)
+  const idMap = new Map<string, string>();
+  nodes.forEach((n, i) => {
+    const safeId = `n${i}`;
+    idMap.set(n.id, safeId);
+  });
+
+  // Nodes
   for (const node of nodes) {
-    lines.push(`  ${wrapNodeShape(node.id, node.label, node.type)}`);
+    const safeId = idMap.get(node.id)!;
+    const shapeFn = NODE_SHAPE[node.type] ?? NODE_SHAPE[NodeType.LLM];
+    const escapedLabel = node.label.replace(/"/g, "'");
+    lines.push(`  ${shapeFn(safeId, escapedLabel)}`);
   }
 
-  // Edge definitions
+  // Edges
   for (const edge of edges) {
-    lines.push(`  ${edge.source} -->|${edge.type}| ${edge.target}`);
-  }
+    const src = idMap.get(edge.source);
+    const tgt = idMap.get(edge.target);
+    if (!src || !tgt) continue;
 
-  // Collect which types are actually used so we only emit relevant classDefs
-  const usedTypes = new Set(nodes.map((n) => n.type));
-
-  for (const type of usedTypes) {
-    const color = NODE_COLORS[type];
-    lines.push(`  classDef ${type} fill:${color},stroke:#333,color:#fff`);
-  }
-
-  // Apply classes to nodes
-  for (const node of nodes) {
-    lines.push(`  class ${node.id} ${node.type}`);
+    const link = EDGE_LINK[edge.type] ?? '-->';
+    if (edge.label) {
+      const escapedLabel = edge.label.replace(/"/g, "'");
+      const linkBase = link.replace('>', '');
+      lines.push(`  ${src} ${linkBase}|${escapedLabel}|> ${tgt}`);
+    } else {
+      lines.push(`  ${src} ${link} ${tgt}`);
+    }
   }
 
   return lines.join('\n');
 }
 
-// ── Import: Mermaid -> graph ──
+// ── Import: Mermaid → Graph ──
 
-// Matches node definitions produced by graphToMermaid.
-// Captures: id, label (including type suffix like "My LLM (llm)")
-const NODE_REGEX = /^\s*(\w+)(?:\(\("([^"]+)"\)\)|\[\/"([^"]+)"\/\]|\{"([^"]+)"\}|\[\["([^"]+)"\]\]|\["([^"]+)"\])/;
+// Reverse shape detection
+const SHAPE_TO_TYPE: [RegExp, NodeType][] = [
+  [/^\[\[".*"\]\]$/, NodeType.TOOL],        // [["label"]]
+  [/^\[\(".*"\)\]$/, NodeType.MEMORY],      // [("label")]
+  [/^\{".*"\}$/, NodeType.ROUTER],          // {"label"}
+  [/^\(\[".*"\]\)$/, NodeType.PLANNER],     // (["label"])
+  [/^\[\/".*"\/\]$/, NodeType.GUARDRAIL],   // [/"label"/]
+  [/^>".*"\]$/, NodeType.HUMAN_IN_LOOP],    // >"label"]
+  [/^\(\[\[".*"\]\]\)$/, NodeType.INPUT],   // ([["label"]])
+  [/^\(".*"\)$/, NodeType.LLM],            // ("label")
+];
 
-// Matches edge definitions: `source -->|edgeType| target`
-const EDGE_REGEX = /^\s*(\w+)\s+-->\|([^|]+)\|\s+(\w+)/;
+const LINK_TO_TYPE: [RegExp, EdgeType][] = [
+  [/==+>/, EdgeType.TOOL_CALL],
+  [/-.+->/, EdgeType.CONTROL_FLOW],
+  [/--+>/, EdgeType.DATA_FLOW],
+];
 
-// Extracts the type suffix from a label like "My LLM (llm)"
-const LABEL_TYPE_REGEX = /^(.+?)\s+\((\w+)\)$/;
+function inferNodeType(shapePart: string): NodeType {
+  for (const [regex, type] of SHAPE_TO_TYPE) {
+    if (regex.test(shapePart)) return type;
+  }
+  return NodeType.LLM; // graceful degradation
+}
 
-/**
- * Parses a Mermaid flowchart string (produced by graphToMermaid) back into
- * GraphNode and GraphEdge arrays.
- *
- * Only handles our own export format -- not arbitrary Mermaid syntax.
- * Unknown node types default to NodeType.LLM.
- * Nodes are assigned grid positions in 4 columns with 200px spacing.
- */
-export function mermaidToGraph(mermaid: string): { nodes: GraphNode[]; edges: GraphEdge[] } {
-  const lines = mermaid.split('\n');
-  const nodes: GraphNode[] = [];
+function inferEdgeType(linkPart: string): EdgeType {
+  for (const [regex, type] of LINK_TO_TYPE) {
+    if (regex.test(linkPart)) return type;
+  }
+  return EdgeType.DATA_FLOW;
+}
+
+function extractLabel(shapePart: string): string {
+  const match = shapePart.match(/"([^"]*)"/);
+  return match ? match[1] : shapePart;
+}
+
+export function mermaidToGraph(mermaidText: string): {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+} {
+  const lines = mermaidText
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith('%%') && !l.match(/^flowchart\s/i) && !l.match(/^graph\s/i));
+
+  const nodeMap = new Map<string, GraphNode>();
   const edges: GraphEdge[] = [];
-  const nodeTypeValues = new Set<string>(Object.values(NodeType));
+
+  // Parse edge lines: A -->|label| B  or  A --> B
+  const edgePattern = /^(\w+)\s+([-=.]+(?:\|[^|]*\|)?[->]+)\s+(\w+)$/;
+  // Parse node definitions: id("label")  or  id{label}  etc.
+  const nodeDefPattern = /^(\w+)(.+)$/;
 
   for (const line of lines) {
-    // Try edge first -- edge regex is more specific and won't conflict
-    const edgeMatch = line.match(EDGE_REGEX);
+    const edgeMatch = line.match(edgePattern);
     if (edgeMatch) {
-      const [, source, edgeTypeRaw, target] = edgeMatch;
-      const edgeType = Object.values(EdgeType).includes(edgeTypeRaw as EdgeType)
-        ? (edgeTypeRaw as EdgeType)
-        : EdgeType.DATA_FLOW;
+      const [, srcId, linkPart, tgtId] = edgeMatch;
+
+      // Ensure source and target exist in nodeMap
+      if (!nodeMap.has(srcId)) {
+        nodeMap.set(srcId, makeDefaultNode(srcId));
+      }
+      if (!nodeMap.has(tgtId)) {
+        nodeMap.set(tgtId, makeDefaultNode(tgtId));
+      }
+
+      // Extract label from link
+      const labelMatch = linkPart.match(/\|([^|]*)\|/);
+      const edgeLabel = labelMatch ? labelMatch[1] : null;
 
       edges.push({
-        id: `e-${source}-${target}`,
-        source,
-        target,
+        id: crypto.randomUUID(),
+        source: srcId,
+        target: tgtId,
         source_handle: 'output',
         target_handle: 'input',
-        type: edgeType,
-        label: null,
+        type: inferEdgeType(linkPart),
+        label: edgeLabel,
       });
       continue;
     }
 
-    // Try node definition
-    const nodeMatch = line.match(NODE_REGEX);
+    // Try as node definition
+    const nodeMatch = line.match(nodeDefPattern);
     if (nodeMatch) {
-      const id = nodeMatch[1];
-      // The label lands in one of the capture groups depending on shape
-      const rawLabel = nodeMatch[2] ?? nodeMatch[3] ?? nodeMatch[4] ?? nodeMatch[5] ?? nodeMatch[6];
-      if (!rawLabel) continue;
+      const [, id, shapePart] = nodeMatch;
+      const trimmedShape = shapePart.trim();
+      const type = inferNodeType(trimmedShape);
+      const label = extractLabel(trimmedShape);
 
-      // Extract type from the "(type)" suffix in the label
-      let label = rawLabel;
-      let nodeType = NodeType.LLM; // default fallback
-
-      const labelTypeMatch = rawLabel.match(LABEL_TYPE_REGEX);
-      if (labelTypeMatch) {
-        label = labelTypeMatch[1];
-        const parsedType = labelTypeMatch[2];
-        if (nodeTypeValues.has(parsedType)) {
-          nodeType = parsedType as NodeType;
-        }
-      }
-
-      // Grid layout: 4 columns, 200px spacing
-      const col = nodes.length % 4;
-      const row = Math.floor(nodes.length / 4);
-
-      nodes.push({
+      nodeMap.set(id, {
         id,
-        type: nodeType,
+        type,
         label,
-        position: { x: col * 200, y: row * 200 },
-        config: { ...DEFAULT_CONFIGS[nodeType] },
+        position: { x: 0, y: 0 }, // will be laid out below
+        config: {},
         pattern_id: null,
         metadata: {},
       });
     }
   }
 
+  // Auto-layout: simple top-down grid
+  const nodes = Array.from(nodeMap.values());
+  const cols = Math.ceil(Math.sqrt(nodes.length));
+  nodes.forEach((node, i) => {
+    node.position = {
+      x: (i % cols) * 250 + 100,
+      y: Math.floor(i / cols) * 180 + 100,
+    };
+  });
+
+  // Remap node IDs to UUIDs for the actual graph
+  const idRemap = new Map<string, string>();
+  for (const node of nodes) {
+    const newId = crypto.randomUUID();
+    idRemap.set(node.id, newId);
+    node.id = newId;
+  }
+
+  for (const edge of edges) {
+    edge.source = idRemap.get(edge.source) ?? edge.source;
+    edge.target = idRemap.get(edge.target) ?? edge.target;
+  }
+
   return { nodes, edges };
+}
+
+function makeDefaultNode(id: string): GraphNode {
+  return {
+    id,
+    type: NodeType.LLM,
+    label: id,
+    position: { x: 0, y: 0 },
+    config: {},
+    pattern_id: null,
+    metadata: {},
+  };
 }

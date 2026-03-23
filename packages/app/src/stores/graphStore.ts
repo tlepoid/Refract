@@ -14,7 +14,7 @@ export interface GraphState {
 export interface UIState {
   leftPanelOpen: boolean;
   rightPanelOpen: boolean;
-  rightPanelTab: 'properties' | 'analysis' | 'eval' | 'patterns' | 'decisions';
+  rightPanelTab: 'properties' | 'analysis' | 'eval' | 'chat' | 'patterns' | 'decisions';
   historyMode: boolean;
   forks: Record<string, { nodes: GraphNode[], edges: GraphEdge[] }>;
   activeForkId: string | null;

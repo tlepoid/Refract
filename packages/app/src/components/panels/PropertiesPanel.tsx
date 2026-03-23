@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 import { NodeType, type GraphNode } from '@refract/shared';
 import { useGraphStore } from '../../stores/graphStore';
 
@@ -282,43 +282,10 @@ function NodeConfigForm({ node }: { node: GraphNode }) {
   }
 }
 
-export function PropertiesPanel() {
-  const selectedNodeIds = useGraphStore((s) => s.selectedNodeIds);
-  const nodes = useGraphStore((s) => s.nodes);
-  const rightPanelOpen = useGraphStore((s) => s.rightPanelOpen);
-  const setRightPanelOpen = useGraphStore((s) => s.setRightPanelOpen);
-
-  const selectedNodes = nodes.filter((n) => selectedNodeIds.includes(n.id));
-
-  // Auto-open when one node selected, auto-close on deselect
-  useEffect(() => {
-    if (selectedNodeIds.length === 1) {
-      setRightPanelOpen(true);
-    } else if (selectedNodeIds.length === 0) {
-      setRightPanelOpen(false);
-    }
-  }, [selectedNodeIds.length, setRightPanelOpen]);
-
-  if (!rightPanelOpen) return null;
-
-  let content: React.ReactNode;
-
-  if (selectedNodes.length === 0) {
-    content = (
-      <div style={{ color: '#64748B', fontSize: 14, padding: 20 }}>
-        No selection
-      </div>
-    );
-  } else if (selectedNodes.length > 1) {
-    content = (
-      <div style={{ color: '#64748B', fontSize: 14, padding: 20 }}>
-        {selectedNodes.length} nodes selected
-      </div>
-    );
-  } else {
-    const node = selectedNodes[0];
-    content = (
-      <div style={{ padding: 16 }}>
+export function PropertiesPanel({ embedded, node }: { embedded?: boolean; node?: GraphNode }) {
+  if (embedded && node) {
+    return (
+      <div data-testid="properties-panel" style={{ padding: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
           <span
             style={{
@@ -342,34 +309,8 @@ export function PropertiesPanel() {
     );
   }
 
-  return (
-    <div
-      data-testid="properties-panel"
-      role="complementary"
-      aria-label="Properties panel"
-      style={{
-        width: 320,
-        height: '100%',
-        background: '#1A1A2E',
-        borderLeft: '1px solid #2D2D3F',
-        overflowY: 'auto',
-        flexShrink: 0,
-      }}
-    >
-      <div
-        style={{
-          padding: '12px 16px',
-          borderBottom: '1px solid #2D2D3F',
-          fontSize: 14,
-          fontWeight: 600,
-          color: '#E2E8F0',
-        }}
-      >
-        Properties
-      </div>
-      {content}
-    </div>
-  );
+  // Legacy standalone mode (kept for backwards compat)
+  return null;
 }
 
 const labelStyle: React.CSSProperties = {
