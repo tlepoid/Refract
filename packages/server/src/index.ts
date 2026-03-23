@@ -2,6 +2,9 @@ import express from 'express';
 import http from 'node:http';
 import { createYjsWebSocketServer } from './yjs/wsServer.js';
 import { pool, runMigrations } from './db/pool.js';
+import { loadPatterns, patternRouter } from './patterns.js';
+import { evalRouter } from './eval-api.js';
+import { analyzeRouter } from './analyze.js';
 
 const app = express();
 const PORT = 4000;
@@ -50,6 +53,14 @@ app.get('/api/canvases', async (req, res) => {
     [teamId],
   );
   res.json(result.rows);
+app.use(patternRouter);
+app.use(evalRouter);
+app.use(analyzeRouter);
+
+loadPatterns();
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
 
 app.delete('/api/canvas/:id', async (req, res) => {

@@ -1,0 +1,109 @@
+id: plan-execute
+name: Plan-and-Execute
+category: orchestration
+description: |
+  Plan-and-Execute separates planning from execution into two distinct phases.
+  First, the LLM generates a complete step-by-step plan for the task. Then a
+  separate execution loop carries out each step sequentially, optionally
+  re-planning if a step fails or produces unexpected results.
+
+  This pattern is well-suited for tasks with predictable structure where
+  up-front planning reduces wasted computation. By committing to a plan before
+  acting, it avoids the token overhead of per-step reasoning and provides a
+  clear audit trail of intended versus actual execution.
+when_to_use:
+  - Tasks with predictable structure that benefit from up-front planning
+  - Multi-step workflows where the steps can be enumerated in advance
+  - Scenarios requiring an audit trail of planned versus executed steps
+  - Cost-sensitive applications where reducing per-step reasoning saves tokens
+when_not_to_use:
+  - Highly dynamic tasks where the plan would need constant revision
+  - Exploratory tasks where the solution space is unknown
+  - Real-time interactions requiring immediate adaptive responses
+trade_offs:
+  token_cost: medium
+  latency: medium
+  reliability: high
+  complexity: medium
+  adaptability: low
+failure_modes:
+  - Rigid plan fails to adapt when intermediate steps produce unexpected results
+  - Initial plan is flawed but execution proceeds without correction
+  - Re-planning loops triggered too frequently negate the efficiency benefit
+compatible_with:
+  - reflection
+  - handoff
+conflicts_with:
+  - react
+example_graph:
+  nodes:
+    - id: input-1
+      type: input
+      label: User Task
+      position: { x: 0, y: 200 }
+      config: { description: "Task to plan and execute" }
+      pattern_id: plan-execute
+      metadata: {}
+    - id: planner-1
+      type: planner
+      label: Planner
+      position: { x: 200, y: 200 }
+      config: { pattern: plan-execute, max_steps: 8 }
+      pattern_id: plan-execute
+      metadata: {}
+    - id: tool-1
+      type: tool
+      label: Step Executor A
+      position: { x: 450, y: 100 }
+      config: { name: executor_a, description: "Execute plan step", input_schema: {}, timeout_ms: 10000 }
+      pattern_id: plan-execute
+      metadata: {}
+    - id: tool-2
+      type: tool
+      label: Step Executor B
+      position: { x: 450, y: 300 }
+      config: { name: executor_b, description: "Execute plan step", input_schema: {}, timeout_ms: 10000 }
+      pattern_id: plan-execute
+      metadata: {}
+    - id: output-1
+      type: output
+      label: Result
+      position: { x: 700, y: 200 }
+      config: { description: "Aggregated execution results" }
+      pattern_id: plan-execute
+      metadata: {}
+  edges:
+    - id: e-input-planner
+      source: input-1
+      target: planner-1
+      source_handle: output
+      target_handle: goal
+      type: data_flow
+      label: null
+    - id: e-planner-tool1
+      source: planner-1
+      target: tool-1
+      source_handle: plan
+      target_handle: tool_call
+      type: control_flow
+      label: step 1
+    - id: e-tool1-tool2
+      source: tool-1
+      target: tool-2
+      source_handle: tool_result
+      target_handle: tool_call
+      type: control_flow
+      label: step 2
+    - id: e-tool2-output
+      source: tool-2
+      target: output-1
+      source_handle: tool_result
+      target_handle: input
+      type: data_flow
+      label: null
+eval_profile:
+  tokens_per_step: [300, 1000, 2500]
+  steps_per_task: [2, 5, 12]
+  p50_latency_ms: 2500
+  p99_latency_ms: 10000
+  failure_rate: 0.05
