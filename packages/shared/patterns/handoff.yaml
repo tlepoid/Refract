@@ -1,0 +1,109 @@
+id: handoff
+name: Handoff Orchestration
+category: orchestration
+description: |
+  Handoff orchestration routes a task through a chain of specialised LLM agents,
+  where each agent completes its portion and explicitly hands off to the next.
+  A router or dispatcher decides which agent receives the task based on its
+  current state, and each agent transforms the context before passing it along.
+
+  Unlike multi-agent chat where agents converse freely, handoff follows a more
+  structured delegation pattern. This makes it well-suited for pipeline-style
+  workflows such as draft-review-publish or triage-resolve-verify, where each
+  stage has clear entry and exit criteria.
+when_to_use:
+  - Pipeline-style workflows with clear stage boundaries
+  - Tasks requiring sequential specialist processing (e.g. draft then review)
+  - Customer support triage where requests escalate through tiers
+  - Workflows where each stage has distinct entry and exit criteria
+when_not_to_use:
+  - Tasks requiring iterative back-and-forth between agents
+  - Highly dynamic tasks where the handoff chain cannot be predetermined
+trade_offs:
+  token_cost: medium
+  latency: medium
+  reliability: high
+  complexity: medium
+  adaptability: medium
+failure_modes:
+  - Context lost or corrupted during handoff between agents
+  - Incorrect routing sends the task to the wrong specialist
+  - Deadlock when two agents try to hand off to each other
+  - Single agent failure blocks the entire pipeline
+compatible_with:
+  - routing
+  - plan-execute
+conflicts_with:
+  - react
+example_graph:
+  nodes:
+    - id: input-1
+      type: input
+      label: Incoming Request
+      position: { x: 0, y: 200 }
+      config: { description: "User request to be triaged" }
+      pattern_id: handoff
+      metadata: {}
+    - id: router-1
+      type: router
+      label: Triage Router
+      position: { x: 200, y: 200 }
+      config: { strategy: llm, routes: [drafter, reviewer] }
+      pattern_id: handoff
+      metadata: {}
+    - id: llm-drafter
+      type: llm
+      label: Drafter Agent
+      position: { x: 450, y: 100 }
+      config: { model: claude-sonnet-4, temperature: 0.7, max_tokens: 2048, system_prompt: "You draft initial responses." }
+      pattern_id: handoff
+      metadata: {}
+    - id: llm-reviewer
+      type: llm
+      label: Reviewer Agent
+      position: { x: 450, y: 300 }
+      config: { model: claude-sonnet-4, temperature: 0.2, max_tokens: 1024, system_prompt: "You review and refine drafts." }
+      pattern_id: handoff
+      metadata: {}
+    - id: output-1
+      type: output
+      label: Final Response
+      position: { x: 700, y: 200 }
+      config: { description: "Reviewed and approved response" }
+      pattern_id: handoff
+      metadata: {}
+  edges:
+    - id: e-input-router
+      source: input-1
+      target: router-1
+      source_handle: output
+      target_handle: input
+      type: data_flow
+      label: null
+    - id: e-router-drafter
+      source: router-1
+      target: llm-drafter
+      source_handle: routed_output
+      target_handle: prompt
+      type: control_flow
+      label: null
+    - id: e-drafter-reviewer
+      source: llm-drafter
+      target: llm-reviewer
+      source_handle: response
+      target_handle: prompt
+      type: data_flow
+      label: handoff
+    - id: e-reviewer-output
+      source: llm-reviewer
+      target: output-1
+      source_handle: response
+      target_handle: input
+      type: data_flow
+      label: null
+eval_profile:
+  tokens_per_step: [200, 600, 1500]
+  steps_per_task: [2, 4, 8]
+  p50_latency_ms: 2000
+  p99_latency_ms: 8000
+  failure_rate: 0.06
