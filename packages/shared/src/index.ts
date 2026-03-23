@@ -1,5 +1,5 @@
-export { serializeGraphForLLM, identifyPatterns } from './serializer.js';
-export { evaluateGraph } from './eval.js';
+export { serializeGraphForLLM, identifyPatterns } from './serializer';
+export { evaluateGraph } from './eval';
 
 // ── Enums ──
 
