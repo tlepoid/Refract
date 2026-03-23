@@ -1,0 +1,82 @@
+{
+  "name": "reflection-basic",
+  "description": "Reflection via guardrail loop: LLM output is validated by a guardrail which cycles back to the LLM for revision until validation passes.",
+  "expectedPatterns": ["reflection"],
+  "expectedRisks": [],
+  "nodes": [
+    {
+      "id": "input-1",
+      "type": "input",
+      "label": "User Input",
+      "position": { "x": 0, "y": 300 },
+      "config": { "description": "User input" },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "llm-1",
+      "type": "llm",
+      "label": "Writer LLM",
+      "position": { "x": 250, "y": 300 },
+      "config": { "model": "claude-sonnet-4", "temperature": 0.7, "max_tokens": 4096, "system_prompt": "You are a careful writer." },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "guardrail-1",
+      "type": "guardrail",
+      "label": "Quality Guardrail",
+      "position": { "x": 500, "y": 150 },
+      "config": { "type": "output", "rules": ["no-pii", "quality-check"], "action": "warn" },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "output-1",
+      "type": "output",
+      "label": "Final Output",
+      "position": { "x": 750, "y": 300 },
+      "config": { "description": "Final output" },
+      "pattern_id": null,
+      "metadata": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-input-llm",
+      "source": "input-1",
+      "target": "llm-1",
+      "source_handle": "output",
+      "target_handle": "prompt",
+      "type": "data_flow",
+      "label": null
+    },
+    {
+      "id": "e-llm-guardrail",
+      "source": "llm-1",
+      "target": "guardrail-1",
+      "source_handle": "response",
+      "target_handle": "content",
+      "type": "data_flow",
+      "label": null
+    },
+    {
+      "id": "e-guardrail-llm",
+      "source": "guardrail-1",
+      "target": "llm-1",
+      "source_handle": "blocked",
+      "target_handle": "prompt",
+      "type": "data_flow",
+      "label": "revision feedback"
+    },
+    {
+      "id": "e-guardrail-output",
+      "source": "guardrail-1",
+      "target": "output-1",
+      "source_handle": "validated",
+      "target_handle": "input",
+      "type": "data_flow",
+      "label": null
+    }
+  ]
+}

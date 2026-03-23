@@ -25,6 +25,11 @@ export function BaseNode({ nodeProps, subtitle, children }: BaseNodeProps) {
   return (
     <div
       className="base-node"
+      data-testid={`canvas-node-${id}`}
+      data-node-type={nodeType}
+      role="button"
+      aria-label={`${graphNode.label} (${nodeType}) node`}
+      tabIndex={0}
       style={{
         background: color,
         borderRadius: 12,
@@ -41,7 +46,7 @@ export function BaseNode({ nodeProps, subtitle, children }: BaseNodeProps) {
       }}
     >
       {/* Label */}
-      <div style={{ fontWeight: 700, fontSize: 14, textAlign: 'center' }}>
+      <div data-testid={`node-label-${id}`} style={{ fontWeight: 700, fontSize: 14, textAlign: 'center' }}>
         {graphNode.label}
       </div>
 

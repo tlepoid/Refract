@@ -16,6 +16,9 @@ export interface UIState {
   rightPanelOpen: boolean;
   rightPanelTab: 'properties' | 'analysis' | 'eval' | 'patterns' | 'decisions';
   historyMode: boolean;
+  forks: Record<string, { nodes: GraphNode[], edges: GraphEdge[] }>;
+  activeForkId: string | null;
+  mainBranchSnapshot: { nodes: GraphNode[], edges: GraphEdge[] } | null;
 }
 
 export interface GraphActions {
@@ -59,6 +62,11 @@ export interface GraphActions {
   setRightPanelOpen: (open: boolean) => void;
   setRightPanelTab: (tab: UIState['rightPanelTab']) => void;
   setHistoryMode: (mode: boolean) => void;
+
+  // Fork
+  createFork: () => string;
+  switchFork: (forkId: string | null) => void;
+  deleteFork: (forkId: string) => void;
 }
 
 export type GraphStore = GraphState & UIState & GraphActions;
@@ -148,6 +156,9 @@ export const useGraphStore = create<GraphStore>()((set, get) => ({
   rightPanelOpen: false,
   rightPanelTab: 'properties',
   historyMode: false,
+  forks: {} as Record<string, { nodes: GraphNode[], edges: GraphEdge[] }>,
+  activeForkId: null as string | null,
+  mainBranchSnapshot: null as { nodes: GraphNode[], edges: GraphEdge[] } | null,
 
   // ── Yjs binding ──
   bindYjs: (nodes, edges, undoManager) => {
@@ -401,4 +412,110 @@ export const useGraphStore = create<GraphStore>()((set, get) => ({
   setRightPanelOpen: (open) => set({ rightPanelOpen: open }),
   setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
   setHistoryMode: (mode) => set({ historyMode: mode }),
+
+  // ── Fork ──
+  createFork: () => {
+    const { nodes, edges } = get();
+    const forkId = generateId();
+    const forkNodes = JSON.parse(JSON.stringify(nodes)) as GraphNode[];
+    const forkEdges = JSON.parse(JSON.stringify(edges)) as GraphEdge[];
+
+    // Save main branch if first fork
+    const mainSnapshot = get().mainBranchSnapshot ?? {
+      nodes: JSON.parse(JSON.stringify(nodes)),
+      edges: JSON.parse(JSON.stringify(edges)),
+    };
+
+    set((s) => ({
+      forks: { ...s.forks, [forkId]: { nodes: forkNodes, edges: forkEdges } },
+      activeForkId: forkId,
+      mainBranchSnapshot: mainSnapshot,
+      // Load fork's copy into active graph
+      nodes: forkNodes,
+      edges: forkEdges,
+      selectedNodeIds: [],
+      selectedEdgeIds: [],
+    }));
+
+    return forkId;
+  },
+
+  switchFork: (forkId) => {
+    const state = get();
+
+    // Save current state back to its source
+    if (state.activeForkId) {
+      // Save current edits back to active fork
+      const currentSnapshot = {
+        nodes: JSON.parse(JSON.stringify(state.nodes)),
+        edges: JSON.parse(JSON.stringify(state.edges)),
+      };
+      set((s) => ({
+        forks: { ...s.forks, [s.activeForkId!]: currentSnapshot },
+      }));
+    } else if (state.mainBranchSnapshot) {
+      // Save main branch state
+      set({
+        mainBranchSnapshot: {
+          nodes: JSON.parse(JSON.stringify(state.nodes)),
+          edges: JSON.parse(JSON.stringify(state.edges)),
+        },
+      });
+    }
+
+    if (forkId === null) {
+      // Switch back to main branch
+      const main = get().mainBranchSnapshot;
+      if (main) {
+        set({
+          nodes: JSON.parse(JSON.stringify(main.nodes)),
+          edges: JSON.parse(JSON.stringify(main.edges)),
+          activeForkId: null,
+          selectedNodeIds: [],
+          selectedEdgeIds: [],
+        });
+      }
+    } else {
+      // Switch to fork
+      const fork = state.forks[forkId];
+      if (fork) {
+        set({
+          nodes: JSON.parse(JSON.stringify(fork.nodes)),
+          edges: JSON.parse(JSON.stringify(fork.edges)),
+          activeForkId: forkId,
+          selectedNodeIds: [],
+          selectedEdgeIds: [],
+        });
+      }
+    }
+  },
+
+  deleteFork: (forkId) => {
+    const state = get();
+    const { [forkId]: _, ...rest } = state.forks;
+
+    if (state.activeForkId === forkId) {
+      // Switch back to main
+      const main = state.mainBranchSnapshot;
+      set({
+        forks: rest,
+        activeForkId: null,
+        nodes: main ? JSON.parse(JSON.stringify(main.nodes)) : state.nodes,
+        edges: main ? JSON.parse(JSON.stringify(main.edges)) : state.edges,
+        mainBranchSnapshot: Object.keys(rest).length === 0 ? null : state.mainBranchSnapshot,
+        selectedNodeIds: [],
+        selectedEdgeIds: [],
+      });
+    } else {
+      set({
+        forks: rest,
+        mainBranchSnapshot: Object.keys(rest).length === 0 ? null : state.mainBranchSnapshot,
+      });
+    }
+  },
 }));
+
+// Expose store for E2E testing
+if (typeof window !== 'undefined') {
+  (window as any).__REFRACT_STORE__ = useGraphStore;
+}

@@ -1,0 +1,8 @@
+{
+  "name": "edge-empty-graph",
+  "description": "Edge case: completely empty graph with no nodes and no edges.",
+  "expectedPatterns": [],
+  "expectedRisks": [],
+  "nodes": [],
+  "edges": []
+}

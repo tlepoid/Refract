@@ -1,0 +1,91 @@
+{
+  "name": "plan-execute-basic",
+  "description": "Plan-Execute pattern: planner creates a plan then executes tools sequentially (tool1 -> tool2) before output.",
+  "expectedPatterns": ["plan-execute"],
+  "expectedRisks": [],
+  "nodes": [
+    {
+      "id": "input-1",
+      "type": "input",
+      "label": "User Input",
+      "position": { "x": 0, "y": 300 },
+      "config": { "description": "User input" },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "planner-1",
+      "type": "planner",
+      "label": "Plan-Execute Planner",
+      "position": { "x": 250, "y": 300 },
+      "config": { "pattern": "plan-execute", "max_steps": 10 },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "tool-1",
+      "type": "tool",
+      "label": "Fetch Tool",
+      "position": { "x": 500, "y": 300 },
+      "config": { "name": "fetch", "description": "Fetch data from API", "input_schema": {}, "timeout_ms": 30000 },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "tool-2",
+      "type": "tool",
+      "label": "Transform Tool",
+      "position": { "x": 750, "y": 300 },
+      "config": { "name": "transform", "description": "Transform fetched data", "input_schema": {}, "timeout_ms": 30000 },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "output-1",
+      "type": "output",
+      "label": "Final Output",
+      "position": { "x": 1000, "y": 300 },
+      "config": { "description": "Final output" },
+      "pattern_id": null,
+      "metadata": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-input-planner",
+      "source": "input-1",
+      "target": "planner-1",
+      "source_handle": "output",
+      "target_handle": "goal",
+      "type": "data_flow",
+      "label": null
+    },
+    {
+      "id": "e-planner-tool1",
+      "source": "planner-1",
+      "target": "tool-1",
+      "source_handle": "step_results",
+      "target_handle": "tool_call",
+      "type": "tool_call",
+      "label": null
+    },
+    {
+      "id": "e-tool1-tool2",
+      "source": "tool-1",
+      "target": "tool-2",
+      "source_handle": "tool_result",
+      "target_handle": "tool_call",
+      "type": "data_flow",
+      "label": "sequential chain"
+    },
+    {
+      "id": "e-tool2-output",
+      "source": "tool-2",
+      "target": "output-1",
+      "source_handle": "tool_result",
+      "target_handle": "input",
+      "type": "data_flow",
+      "label": null
+    }
+  ]
+}

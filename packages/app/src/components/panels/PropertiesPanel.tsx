@@ -19,8 +19,10 @@ function LabelField({ node }: { node: GraphNode }) {
 
   return (
     <div style={{ marginBottom: 16 }}>
-      <label style={labelStyle}>Label</label>
+      <label htmlFor="prop-label" style={labelStyle}>Label</label>
       <input
+        data-testid="prop-label-input"
+        id="prop-label"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         style={inputStyle}
@@ -74,8 +76,10 @@ function ConfigField({
   if (type === 'dropdown') {
     return (
       <div style={{ marginBottom: 12 }}>
-        <label style={labelStyle}>{label}</label>
+        <label htmlFor={`prop-field-${field}`} style={labelStyle}>{label}</label>
         <select
+          data-testid={`prop-field-${field}`}
+          id={`prop-field-${field}`}
           value={localValue ?? ''}
           onChange={(e) => {
             setLocalValue(e.target.value);
@@ -96,10 +100,12 @@ function ConfigField({
   if (type === 'slider') {
     return (
       <div style={{ marginBottom: 12 }}>
-        <label style={labelStyle}>
+        <label htmlFor={`prop-field-${field}`} style={labelStyle}>
           {label}: {localValue}
         </label>
         <input
+          data-testid={`prop-field-${field}`}
+          id={`prop-field-${field}`}
           type="range"
           value={localValue ?? 0}
           min={min ?? 0}
@@ -119,8 +125,10 @@ function ConfigField({
   if (type === 'textarea') {
     return (
       <div style={{ marginBottom: 12 }}>
-        <label style={labelStyle}>{label}</label>
+        <label htmlFor={`prop-field-${field}`} style={labelStyle}>{label}</label>
         <textarea
+          data-testid={`prop-field-${field}`}
+          id={`prop-field-${field}`}
           value={localValue ?? ''}
           onChange={(e) => {
             setLocalValue(e.target.value);
@@ -136,8 +144,10 @@ function ConfigField({
     const strValue = typeof localValue === 'string' ? localValue : JSON.stringify(localValue, null, 2);
     return (
       <div style={{ marginBottom: 12 }}>
-        <label style={labelStyle}>{label}</label>
+        <label htmlFor={`prop-field-${field}`} style={labelStyle}>{label}</label>
         <textarea
+          data-testid={`prop-field-${field}`}
+          id={`prop-field-${field}`}
           value={strValue}
           onChange={(e) => {
             setLocalValue(e.target.value);
@@ -160,8 +170,10 @@ function ConfigField({
   if (type === 'number') {
     return (
       <div style={{ marginBottom: 12 }}>
-        <label style={labelStyle}>{label}</label>
+        <label htmlFor={`prop-field-${field}`} style={labelStyle}>{label}</label>
         <input
+          data-testid={`prop-field-${field}`}
+          id={`prop-field-${field}`}
           type="number"
           value={localValue ?? ''}
           min={min}
@@ -181,8 +193,10 @@ function ConfigField({
   // text
   return (
     <div style={{ marginBottom: 12 }}>
-      <label style={labelStyle}>{label}</label>
+      <label htmlFor={`prop-field-${field}`} style={labelStyle}>{label}</label>
       <input
+        data-testid={`prop-field-${field}`}
+        id={`prop-field-${field}`}
         value={localValue ?? ''}
         onChange={(e) => {
           setLocalValue(e.target.value);
@@ -330,6 +344,9 @@ export function PropertiesPanel() {
 
   return (
     <div
+      data-testid="properties-panel"
+      role="complementary"
+      aria-label="Properties panel"
       style={{
         width: 320,
         height: '100%',
@@ -374,5 +391,7 @@ const inputStyle: React.CSSProperties = {
   color: '#E2E8F0',
   fontSize: 13,
   outline: 'none',
+  // Focus styles applied via CSS-in-JS don't support :focus-visible pseudo-class,
+  // but the browser's default focus ring will show for keyboard users
   boxSizing: 'border-box',
 };

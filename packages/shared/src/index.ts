@@ -1,26 +1,7 @@
-export { serializeGraphForLLM, identifyPatterns } from './serializer';
-export { evaluateGraph } from './eval';
+// ── Enums (re-exported from dedicated module to avoid circular-dependency issues) ──
 
-// ── Enums ──
-
-export enum NodeType {
-  LLM = 'llm',
-  TOOL = 'tool',
-  MEMORY = 'memory',
-  ROUTER = 'router',
-  PLANNER = 'planner',
-  GUARDRAIL = 'guardrail',
-  HUMAN_IN_LOOP = 'human_in_loop',
-  INPUT = 'input',
-  OUTPUT = 'output',
-}
-
-export enum EdgeType {
-  DATA_FLOW = 'data_flow',
-  CONTROL_FLOW = 'control_flow',
-  TOOL_CALL = 'tool_call',
-  MEMORY_OP = 'memory_op',
-}
+import { NodeType, EdgeType } from './enums';
+export { NodeType, EdgeType } from './enums';
 
 // ── Per-node config interfaces ──
 
@@ -231,3 +212,9 @@ export const NODE_HANDLES: Record<NodeType, HandleDef> = {
     outputs: [],
   },
 };
+
+// ── Re-exports (placed after enums/constants to avoid circular-dependency issues) ──
+
+export { serializeGraphForLLM, identifyPatterns } from './serializer';
+export { evaluateGraph } from './eval';
+export { graphToMermaid, mermaidToGraph } from './mermaid';
