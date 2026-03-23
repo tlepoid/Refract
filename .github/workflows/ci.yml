@@ -119,6 +119,9 @@ jobs:
       - name: Test shared
         run: pnpm --filter @refract/shared test
 
+      - name: Test server
+        run: pnpm --filter @refract/server test
+
       - name: Test app
         run: pnpm --filter @refract/app test
 

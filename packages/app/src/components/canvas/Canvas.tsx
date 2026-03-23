@@ -24,6 +24,7 @@ import { EdgeTypeSelector } from './EdgeTypeSelector';
 import { isValidConnection } from './connectionValidation';
 import { NodePalette } from '../panels/NodePalette';
 import { RightSidebar } from '../panels/RightSidebar';
+import { ForkPanel } from '../ForkPanel';
 import { ShortcutOverlay } from './ShortcutOverlay';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { pushSnapshot } from '../../stores/undoRedoMiddleware';
@@ -251,12 +252,13 @@ function CanvasInner() {
   );
 
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh', background: '#0F0F1A' }}>
+    <div data-testid="canvas-container" style={{ display: 'flex', width: '100vw', height: '100vh', background: '#0F0F1A' }}>
       <NodePalette />
 
       <div style={{ flex: 1, position: 'relative' }}>
         {/* Toolbar */}
         <div
+          data-testid="canvas-toolbar"
           style={{
             position: 'absolute',
             top: 12,
@@ -271,6 +273,7 @@ function CanvasInner() {
           }}
         >
           <button
+            data-testid="export-mermaid-btn"
             onClick={() => setMermaidModal('export')}
             style={toolbarButtonStyle}
             title="Export Mermaid"
@@ -278,6 +281,7 @@ function CanvasInner() {
             Export
           </button>
           <button
+            data-testid="import-mermaid-btn"
             onClick={() => setMermaidModal('import')}
             style={toolbarButtonStyle}
             title="Import Mermaid"
@@ -299,7 +303,10 @@ function CanvasInner() {
           </button>
         </div>
 
+        <ForkPanel />
+
         <ReactFlow
+          aria-label="Agent design canvas"
           nodes={rfNodes}
           edges={rfEdges}
           nodeTypes={rfNodeTypes}

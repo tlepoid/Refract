@@ -1,0 +1,244 @@
+{
+  "name": "edge-complex-enterprise",
+  "description": "Large enterprise graph: input -> input guardrail -> router dispatching to an LLM with tools, a ReAct planner with tools, and a direct tool path. All converge through an output guardrail to the final output.",
+  "expectedPatterns": ["routing", "react"],
+  "expectedRisks": [],
+  "nodes": [
+    {
+      "id": "input-1",
+      "type": "input",
+      "label": "User Input",
+      "position": { "x": 0, "y": 300 },
+      "config": { "description": "User input" },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "guardrail-input",
+      "type": "guardrail",
+      "label": "Input Guardrail",
+      "position": { "x": 200, "y": 300 },
+      "config": { "type": "input", "rules": ["no-pii", "no-injection"], "action": "block" },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "router-1",
+      "type": "router",
+      "label": "Task Router",
+      "position": { "x": 400, "y": 300 },
+      "config": { "strategy": "llm", "routes": ["analysis", "complex-task", "quick-lookup"] },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "llm-analyst",
+      "type": "llm",
+      "label": "Analyst LLM",
+      "position": { "x": 650, "y": 100 },
+      "config": { "model": "claude-sonnet-4", "temperature": 0.5, "max_tokens": 4096, "system_prompt": "You are a data analyst." },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "tool-search",
+      "type": "tool",
+      "label": "Search Tool",
+      "position": { "x": 900, "y": 100 },
+      "config": { "name": "search", "description": "Search knowledge base", "input_schema": {}, "timeout_ms": 30000 },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "planner-react",
+      "type": "planner",
+      "label": "ReAct Planner",
+      "position": { "x": 650, "y": 300 },
+      "config": { "pattern": "react", "max_steps": 10 },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "tool-code",
+      "type": "tool",
+      "label": "Code Executor",
+      "position": { "x": 900, "y": 250 },
+      "config": { "name": "code-execute", "description": "Executes code snippets", "input_schema": {}, "timeout_ms": 60000 },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "tool-api",
+      "type": "tool",
+      "label": "API Tool",
+      "position": { "x": 900, "y": 350 },
+      "config": { "name": "api-call", "description": "Calls external APIs", "input_schema": {}, "timeout_ms": 30000 },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "tool-quick",
+      "type": "tool",
+      "label": "Quick Lookup Tool",
+      "position": { "x": 650, "y": 500 },
+      "config": { "name": "lookup", "description": "Fast key-value lookup", "input_schema": {}, "timeout_ms": 5000 },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "guardrail-output",
+      "type": "guardrail",
+      "label": "Output Guardrail",
+      "position": { "x": 1100, "y": 300 },
+      "config": { "type": "output", "rules": ["no-pii", "quality-check", "format-check"], "action": "warn" },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "output-1",
+      "type": "output",
+      "label": "Final Output",
+      "position": { "x": 1350, "y": 300 },
+      "config": { "description": "Final output" },
+      "pattern_id": null,
+      "metadata": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-input-guard-in",
+      "source": "input-1",
+      "target": "guardrail-input",
+      "source_handle": "output",
+      "target_handle": "content",
+      "type": "data_flow",
+      "label": null
+    },
+    {
+      "id": "e-guard-in-router",
+      "source": "guardrail-input",
+      "target": "router-1",
+      "source_handle": "validated",
+      "target_handle": "input",
+      "type": "data_flow",
+      "label": null
+    },
+    {
+      "id": "e-router-analyst",
+      "source": "router-1",
+      "target": "llm-analyst",
+      "source_handle": "routed_output",
+      "target_handle": "prompt",
+      "type": "control_flow",
+      "label": "analysis path"
+    },
+    {
+      "id": "e-router-planner",
+      "source": "router-1",
+      "target": "planner-react",
+      "source_handle": "routed_output",
+      "target_handle": "goal",
+      "type": "control_flow",
+      "label": "complex task path"
+    },
+    {
+      "id": "e-router-quick",
+      "source": "router-1",
+      "target": "tool-quick",
+      "source_handle": "routed_output",
+      "target_handle": "tool_call",
+      "type": "control_flow",
+      "label": "quick lookup path"
+    },
+    {
+      "id": "e-analyst-search",
+      "source": "llm-analyst",
+      "target": "tool-search",
+      "source_handle": "tool_calls",
+      "target_handle": "tool_call",
+      "type": "tool_call",
+      "label": null
+    },
+    {
+      "id": "e-search-guard-out",
+      "source": "tool-search",
+      "target": "guardrail-output",
+      "source_handle": "tool_result",
+      "target_handle": "content",
+      "type": "data_flow",
+      "label": null
+    },
+    {
+      "id": "e-analyst-guard-out",
+      "source": "llm-analyst",
+      "target": "guardrail-output",
+      "source_handle": "response",
+      "target_handle": "content",
+      "type": "data_flow",
+      "label": null
+    },
+    {
+      "id": "e-planner-code",
+      "source": "planner-react",
+      "target": "tool-code",
+      "source_handle": "step_results",
+      "target_handle": "tool_call",
+      "type": "tool_call",
+      "label": null
+    },
+    {
+      "id": "e-code-planner",
+      "source": "tool-code",
+      "target": "planner-react",
+      "source_handle": "tool_result",
+      "target_handle": "goal",
+      "type": "data_flow",
+      "label": "code result feedback"
+    },
+    {
+      "id": "e-planner-api",
+      "source": "planner-react",
+      "target": "tool-api",
+      "source_handle": "step_results",
+      "target_handle": "tool_call",
+      "type": "tool_call",
+      "label": null
+    },
+    {
+      "id": "e-api-planner",
+      "source": "tool-api",
+      "target": "planner-react",
+      "source_handle": "tool_result",
+      "target_handle": "goal",
+      "type": "data_flow",
+      "label": "API result feedback"
+    },
+    {
+      "id": "e-planner-guard-out",
+      "source": "planner-react",
+      "target": "guardrail-output",
+      "source_handle": "plan",
+      "target_handle": "content",
+      "type": "data_flow",
+      "label": null
+    },
+    {
+      "id": "e-quick-guard-out",
+      "source": "tool-quick",
+      "target": "guardrail-output",
+      "source_handle": "tool_result",
+      "target_handle": "content",
+      "type": "data_flow",
+      "label": null
+    },
+    {
+      "id": "e-guard-out-output",
+      "source": "guardrail-output",
+      "target": "output-1",
+      "source_handle": "validated",
+      "target_handle": "input",
+      "type": "data_flow",
+      "label": null
+    }
+  ]
+}

@@ -18,7 +18,7 @@ export function RemoteCursors({ users }: { users: UserPresence[] }) {
       {users.map(
         (u) =>
           u.cursor && (
-            <g key={u.clientId} transform={`translate(${u.cursor.x}, ${u.cursor.y})`}>
+            <g key={u.clientId} data-testid={`remote-cursor-${u.clientId}`} transform={`translate(${u.cursor.x}, ${u.cursor.y})`}>
               <path
                 d="M0 0 L0 16 L4 12 L8 18 L10 17 L6 11 L12 11 Z"
                 fill={u.user.color}

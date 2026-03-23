@@ -49,6 +49,9 @@ export function NodePalette() {
 
   return (
     <div
+      data-testid="node-palette"
+      role="navigation"
+      aria-label="Node palette"
       style={{
         width: leftPanelOpen ? 240 : 40,
         height: '100%',
@@ -63,6 +66,8 @@ export function NodePalette() {
     >
       <button
         onClick={() => setLeftPanelOpen(!leftPanelOpen)}
+        aria-expanded={leftPanelOpen}
+        aria-label={leftPanelOpen ? 'Collapse palette' : 'Expand palette'}
         style={{
           background: 'transparent',
           border: 'none',
@@ -78,14 +83,14 @@ export function NodePalette() {
       </button>
 
       {leftPanelOpen && (
-        <div style={{ padding: '0 12px 12px', overflowY: 'auto', flex: 1 }}>
+        <div role="list" aria-label="Available nodes" tabIndex={0} style={{ padding: '0 12px 12px', overflowY: 'auto', flex: 1 }}>
           {NODE_GROUPS.map((group) => (
-            <div key={group.label} style={{ marginBottom: 16 }}>
+            <div key={group.label} data-testid={`palette-group-${group.label.toLowerCase()}`} style={{ marginBottom: 16 }}>
               <div
                 style={{
                   fontSize: 11,
                   fontWeight: 600,
-                  color: '#64748B',
+                  color: '#8B9CB5',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   marginBottom: 8,
@@ -98,6 +103,9 @@ export function NodePalette() {
                 return (
                   <div
                     key={type}
+                    data-testid={`palette-node-${type}`}
+                    role="listitem"
+                    aria-label={`${nodeTypeLabel(type)} node`}
                     draggable
                     onDragStart={(e) => onDragStart(e, type)}
                     style={{
@@ -132,7 +140,7 @@ export function NodePalette() {
                       <div style={{ fontSize: 13, fontWeight: 600, color: '#E2E8F0' }}>
                         {nodeTypeLabel(type)}
                       </div>
-                      <div style={{ fontSize: 11, color: '#64748B' }}>{reg.description}</div>
+                      <div style={{ fontSize: 11, color: '#8B9CB5' }}>{reg.description}</div>
                     </div>
                   </div>
                 );

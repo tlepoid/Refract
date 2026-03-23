@@ -53,15 +53,13 @@ app.get('/api/canvases', async (req, res) => {
     [teamId],
   );
   res.json(result.rows);
+});
+
 app.use(patternRouter);
 app.use(evalRouter);
 app.use(analyzeRouter);
 
 loadPatterns();
-
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
 
 app.delete('/api/canvas/:id', async (req, res) => {
   const result = await pool.query('DELETE FROM canvases WHERE id = $1 RETURNING id', [

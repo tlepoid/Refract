@@ -239,7 +239,7 @@ export function AnalysisPanel() {
             fontSize: 13,
           }}
         >
-          Click "Run Analysis" to analyze your design
+          Click &quot;Run Analysis&quot; to analyze your design
         </div>
       )}
     </div>

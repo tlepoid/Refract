@@ -1,0 +1,46 @@
+{
+  "name": "anti-circular-no-purpose",
+  "description": "Anti-pattern: meaningless cycle between two LLMs with no input or output nodes. The graph has no entry or exit point.",
+  "expectedPatterns": ["handoff", "reflection"],
+  "expectedRisks": ["no input", "no output"],
+  "nodes": [
+    {
+      "id": "llm-1",
+      "type": "llm",
+      "label": "LLM Alpha",
+      "position": { "x": 250, "y": 300 },
+      "config": { "model": "claude-sonnet-4", "temperature": 0.7, "max_tokens": 4096, "system_prompt": "You are Alpha." },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "llm-2",
+      "type": "llm",
+      "label": "LLM Beta",
+      "position": { "x": 500, "y": 300 },
+      "config": { "model": "claude-sonnet-4", "temperature": 0.7, "max_tokens": 4096, "system_prompt": "You are Beta." },
+      "pattern_id": null,
+      "metadata": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-llm1-llm2",
+      "source": "llm-1",
+      "target": "llm-2",
+      "source_handle": "response",
+      "target_handle": "prompt",
+      "type": "data_flow",
+      "label": null
+    },
+    {
+      "id": "e-llm2-llm1",
+      "source": "llm-2",
+      "target": "llm-1",
+      "source_handle": "response",
+      "target_handle": "prompt",
+      "type": "data_flow",
+      "label": null
+    }
+  ]
+}
