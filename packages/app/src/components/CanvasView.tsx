@@ -7,6 +7,8 @@ import {
   BackgroundVariant,
   Controls,
   MiniMap,
+  useReactFlow,
+  ReactFlowProvider,
   type NodeMouseHandler,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -14,10 +16,12 @@ import { YjsProvider } from '@/providers/YjsProvider';
 import { useYjsSync } from '@/hooks/useYjsSync';
 import { useAwareness } from '@/hooks/useAwareness';
 import { useComments } from '@/hooks/useComments';
+import { useDecisions } from '@/hooks/useDecisions';
 import { useGraphStore } from '@/stores/graphStore';
 import { RemoteCursors } from './RemoteCursors';
 import { UserPresenceList } from './UserPresenceList';
 import { CommentThreadPopover } from './CommentThread';
+import { DecisionLogPanel } from './DecisionLogPanel';
 import type { CommentThread } from '@refract/shared';
 
 function CanvasInner() {
@@ -29,6 +33,12 @@ function CanvasInner() {
   const { remoteUsers, updateCursor, updateSelectedNodes } = useAwareness();
   const { threads, addThread, addReply, resolveThread, wontfixThread, getOpenThreadsForNode, getThreadsForNode } =
     useComments();
+  const { records: decisionRecords, createDecision } = useDecisions();
+  const rightPanelOpen = useGraphStore((s) => s.rightPanelOpen);
+  const rightPanelTab = useGraphStore((s) => s.rightPanelTab);
+  const setRightPanelOpen = useGraphStore((s) => s.setRightPanelOpen);
+  const setRightPanelTab = useGraphStore((s) => s.setRightPanelTab);
+  const reactFlowInstance = useReactFlow();
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
@@ -207,7 +217,11 @@ function CanvasInner() {
               addReply(activeThread.thread.id, userName, text);
             }}
             onResolve={() => {
-              resolveThread(activeThread.thread.id);
+              const resolved = resolveThread(activeThread.thread.id);
+              if (resolved) {
+                const userName = sessionStorage.getItem('refract-user-name') ?? 'Anonymous';
+                createDecision(resolved, userName);
+              }
               setActiveThread(null);
             }}
             onWontfix={() => {
@@ -215,6 +229,78 @@ function CanvasInner() {
               setActiveThread(null);
             }}
             onClose={() => setActiveThread(null)}
+          />
+        </div>
+      )}
+      {/* Decision log toggle */}
+      <button
+        onClick={() => {
+          if (rightPanelTab === 'decisions' && rightPanelOpen) {
+            setRightPanelOpen(false);
+          } else {
+            setRightPanelTab('decisions');
+            setRightPanelOpen(true);
+          }
+        }}
+        style={{
+          position: 'absolute',
+          bottom: 16,
+          right: 16,
+          zIndex: 100,
+          padding: '6px 14px',
+          backgroundColor: '#1d4ed8',
+          color: 'white',
+          border: 'none',
+          borderRadius: 6,
+          cursor: 'pointer',
+          fontSize: 13,
+          boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+        }}
+      >
+        Decisions ({decisionRecords.length})
+      </button>
+
+      {/* Decision log panel */}
+      {rightPanelOpen && rightPanelTab === 'decisions' && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: 340,
+            height: '100%',
+            backgroundColor: 'white',
+            borderLeft: '1px solid #e5e7eb',
+            zIndex: 90,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div
+            style={{
+              padding: '12px 16px',
+              borderBottom: '1px solid #e5e7eb',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <span style={{ fontWeight: 600, fontSize: 14 }}>Decision Log</span>
+            <button
+              onClick={() => setRightPanelOpen(false)}
+              style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}
+            >
+              x
+            </button>
+          </div>
+          <DecisionLogPanel
+            records={decisionRecords}
+            onNodeClick={(nodeId) => {
+              const node = nodes.find((n) => n.id === nodeId);
+              if (node) {
+                reactFlowInstance.setCenter(node.position.x, node.position.y, { zoom: 1.5, duration: 500 });
+              }
+            }}
           />
         </div>
       )}
@@ -227,7 +313,9 @@ const DEFAULT_CANVAS_ID = 'default';
 export default function CanvasView({ canvasId }: { canvasId?: string }) {
   return (
     <YjsProvider canvasId={canvasId ?? DEFAULT_CANVAS_ID}>
-      <CanvasInner />
+      <ReactFlowProvider>
+        <CanvasInner />
+      </ReactFlowProvider>
     </YjsProvider>
   );
 }
