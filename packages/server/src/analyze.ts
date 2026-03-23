@@ -12,18 +12,6 @@ export const analyzeRouter: ReturnType<typeof Router> = Router();
 
 const client = new Anthropic();
 
-// ── Rate limiting: 1 per 5s per canvas ──
-
-const lastCallByCanvas = new Map<string, number>();
-
-function isRateLimited(canvasId: string): boolean {
-  const now = Date.now();
-  const last = lastCallByCanvas.get(canvasId);
-  if (last && now - last < 5000) return true;
-  lastCallByCanvas.set(canvasId, now);
-  return false;
-}
-
 // ── Claude tool definitions ──
 
 const tools: Anthropic.Tool[] = [
@@ -206,16 +194,10 @@ Instructions:
 
 analyzeRouter.post('/api/analyze', async (req, res) => {
   try {
-    const { canvas_id, graph, mode, message, history } = req.body;
+    const { graph, message, history } = req.body;
 
-    if (!graph || !mode) {
-      res.status(400).json({ error: 'Missing graph or mode in request body' });
-      return;
-    }
-
-    // Rate limit passive mode
-    if (mode === 'passive' && canvas_id && isRateLimited(canvas_id)) {
-      res.status(429).json({ error: 'Rate limited. Max 1 request per 5 seconds per canvas.' });
+    if (!graph || !message) {
+      res.status(400).json({ error: 'Missing graph or message in request body' });
       return;
     }
 
@@ -235,27 +217,16 @@ analyzeRouter.post('/api/analyze', async (req, res) => {
 
     const systemPrompt = buildSystemPrompt(serialized, patterns, scores);
 
-    // Build messages
+    // Build messages from conversation history
     const messages: Anthropic.MessageParam[] = [];
 
-    if (mode === 'conversational' && history) {
+    if (history) {
       for (const h of history) {
         messages.push(h);
       }
     }
 
-    if (mode === 'passive') {
-      messages.push({
-        role: 'user',
-        content:
-          'Analyse this agent architecture graph. Identify trade-offs, risks, and suggest improvements. Use the available tools to structure your analysis.',
-      });
-    } else if (mode === 'conversational' && message) {
-      messages.push({ role: 'user', content: message });
-    } else {
-      res.status(400).json({ error: 'Invalid mode or missing message for conversational mode' });
-      return;
-    }
+    messages.push({ role: 'user', content: message });
 
     // SSE setup
     res.setHeader('Content-Type', 'text/event-stream');
