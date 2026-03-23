@@ -6,13 +6,21 @@ import * as awarenessProtocol from 'y-protocols/awareness';
 import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import { initCanvasDoc } from './documentSchema.js';
+import { loadDoc, attachPersistence } from './persistence.js';
 
 const MSG_SYNC = 0;
 const MSG_AWARENESS = 1;
 
-const docs = new Map<string, { doc: Y.Doc; awareness: awarenessProtocol.Awareness; conns: Set<WebSocket> }>();
+interface DocEntry {
+  doc: Y.Doc;
+  awareness: awarenessProtocol.Awareness;
+  conns: Set<WebSocket>;
+  ready: Promise<void>;
+}
 
-function getOrCreateDoc(canvasId: string) {
+const docs = new Map<string, DocEntry>();
+
+function getOrCreateDoc(canvasId: string): DocEntry {
   let entry = docs.get(canvasId);
   if (entry) return entry;
 
@@ -20,6 +28,16 @@ function getOrCreateDoc(canvasId: string) {
   initCanvasDoc(doc);
 
   const awareness = new awarenessProtocol.Awareness(doc);
+
+  // Load persisted state asynchronously
+  const ready = loadDoc(canvasId, doc)
+    .then(() => {
+      attachPersistence(canvasId, doc);
+    })
+    .catch((err) => {
+      // DB may not be available — continue with in-memory doc
+      console.warn(`[yjs] Could not load from DB for canvas ${canvasId}:`, err.message);
+    });
 
   awareness.on('update', ({ added, updated, removed }: { added: number[]; updated: number[]; removed: number[] }) => {
     const changedClients = added.concat(updated, removed);
@@ -38,7 +56,7 @@ function getOrCreateDoc(canvasId: string) {
     }
   });
 
-  entry = { doc, awareness, conns: new Set() };
+  entry = { doc, awareness, conns: new Set(), ready };
   docs.set(canvasId, entry);
   return entry;
 }
@@ -62,15 +80,19 @@ export function createYjsWebSocketServer(server: http.Server): WebSocketServer {
     });
   });
 
-  wss.on('connection', (ws: WebSocket, request: http.IncomingMessage) => {
+  wss.on('connection', async (ws: WebSocket, request: http.IncomingMessage) => {
     const url = new URL(request.url ?? '', `http://${request.headers.host}`);
     const match = url.pathname.match(CANVAS_PATH_RE);
     const canvasId = match![1];
 
-    const { doc, awareness, conns } = getOrCreateDoc(canvasId);
+    const entry = getOrCreateDoc(canvasId);
+    const { doc, awareness, conns } = entry;
     conns.add(ws);
 
     console.log(`[yjs] Client connected to canvas: ${canvasId} (${conns.size} total)`);
+
+    // Wait for persisted state to be loaded before syncing
+    await entry.ready;
 
     // Send initial sync step 1
     const syncEncoder = encoding.createEncoder();
