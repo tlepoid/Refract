@@ -1,5 +1,7 @@
-import type { GraphNode } from '@refract/shared';
+'use client';
+
+import { Canvas } from '../components/canvas/Canvas';
 
 export default function Home() {
-  return <main></main>;
+  return <Canvas />;
 }
