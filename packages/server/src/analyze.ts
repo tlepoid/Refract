@@ -196,10 +196,12 @@ analyzeRouter.post('/api/analyze', async (req, res) => {
   try {
     const { graph, message, history } = req.body;
 
-    if (!graph || !message) {
-      res.status(400).json({ error: 'Missing graph or message in request body' });
+    if (!graph) {
+      res.status(400).json({ error: 'Missing graph in request body' });
       return;
     }
+
+    const actualMessage = message || 'Analyze this agent architecture and call the analyze_tradeoffs tool.';
 
     const nodes: GraphNode[] = graph.nodes ?? [];
     const edges: GraphEdge[] = graph.edges ?? [];
@@ -226,7 +228,7 @@ analyzeRouter.post('/api/analyze', async (req, res) => {
       }
     }
 
-    messages.push({ role: 'user', content: message });
+    messages.push({ role: 'user', content: actualMessage });
 
     // SSE setup
     res.setHeader('Content-Type', 'text/event-stream');

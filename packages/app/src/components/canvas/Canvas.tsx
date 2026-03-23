@@ -23,10 +23,11 @@ import { edgeTypes } from './edges/edgeTypes';
 import { EdgeTypeSelector } from './EdgeTypeSelector';
 import { isValidConnection } from './connectionValidation';
 import { NodePalette } from '../panels/NodePalette';
-import { PropertiesPanel } from '../panels/PropertiesPanel';
+import { RightSidebar } from '../panels/RightSidebar';
 import { ShortcutOverlay } from './ShortcutOverlay';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { pushSnapshot } from '../../stores/undoRedoMiddleware';
+import { useGhostElements, SuggestionActions } from './SuggestionOverlay';
 import type { BaseNodeData } from './BaseNode';
 
 const rfNodeTypes = getReactFlowNodeTypes();
@@ -76,22 +77,34 @@ function CanvasInner() {
   const setSelectedNodes = useGraphStore((s) => s.setSelectedNodes);
   const setSelectedEdges = useGraphStore((s) => s.setSelectedEdges);
 
+  const { ghostNodes, ghostEdges, removedNodeIds } = useGhostElements();
+
   const [pendingConnection, setPendingConnection] = useState<{
     connection: PendingConnection;
     position: { x: number; y: number };
   } | null>(null);
 
-  const rfNodes: Node[] = useMemo(
-    () =>
-      nodes.map((n) => {
-        const rfn = toReactFlowNode(n);
-        rfn.selected = selectedNodeIds.includes(n.id);
-        return rfn;
-      }),
-    [nodes, selectedNodeIds],
-  );
+  const rfNodes: Node[] = useMemo(() => {
+    const base = nodes.map((n) => {
+      const rfn = toReactFlowNode(n);
+      rfn.selected = selectedNodeIds.includes(n.id);
+      if (removedNodeIds.has(n.id)) {
+        rfn.style = {
+          ...rfn.style,
+          opacity: 0.4,
+          outline: '2px dashed #F87171',
+          outlineOffset: 4,
+        };
+      }
+      return rfn;
+    });
+    return [...base, ...ghostNodes];
+  }, [nodes, selectedNodeIds, ghostNodes, removedNodeIds]);
 
-  const rfEdges: Edge[] = useMemo(() => edges.map(toReactFlowEdge), [edges]);
+  const rfEdges: Edge[] = useMemo(
+    () => [...edges.map(toReactFlowEdge), ...ghostEdges],
+    [edges, ghostEdges],
+  );
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
@@ -276,6 +289,8 @@ function CanvasInner() {
           />
         </ReactFlow>
 
+        <SuggestionActions />
+
         {pendingConnection && (
           <EdgeTypeSelector
             position={pendingConnection.position}
@@ -286,7 +301,7 @@ function CanvasInner() {
         )}
       </div>
 
-      <PropertiesPanel />
+      <RightSidebar />
 
       {showOverlay && <ShortcutOverlay onClose={() => setShowOverlay(false)} />}
     </div>
