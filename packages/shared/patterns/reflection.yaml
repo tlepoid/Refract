@@ -1,0 +1,102 @@
+id: reflection
+name: Self-Reflection Loop
+category: reasoning
+description: |
+  Self-Reflection adds a critique step after the primary LLM generates its
+  output. The output is fed to a guardrail or a second LLM that evaluates
+  quality, correctness, and adherence to requirements. If the evaluation
+  fails, the feedback is sent back to the original LLM for revision.
+
+  This pattern improves output quality by catching errors and hallucinations
+  before they reach the user. It is especially valuable for high-stakes
+  outputs such as code generation, factual summaries, or safety-critical
+  content where a single-pass response is insufficient.
+when_to_use:
+  - High-stakes outputs requiring quality assurance (code, legal, medical)
+  - Tasks where hallucination or factual errors must be minimised
+  - Content generation that must adhere to specific style or format rules
+  - Iterative refinement tasks such as writing or code review
+when_not_to_use:
+  - Latency-critical applications where the extra round trip is unacceptable
+  - Simple factual lookups where reflection adds no value
+trade_offs:
+  token_cost: high
+  latency: high
+  reliability: high
+  complexity: medium
+  adaptability: medium
+failure_modes:
+  - Reflection loop never converges and hits max iteration limit
+  - Critic is too strict and rejects valid outputs repeatedly
+  - Critic is too lenient and approves low-quality outputs
+  - Reflection adds latency without improving quality on already-good outputs
+compatible_with:
+  - react
+  - plan-execute
+  - routing
+conflicts_with: []
+example_graph:
+  nodes:
+    - id: input-1
+      type: input
+      label: Task Input
+      position: { x: 0, y: 200 }
+      config: { description: "Task requiring high-quality output" }
+      pattern_id: reflection
+      metadata: {}
+    - id: llm-generator
+      type: llm
+      label: Generator
+      position: { x: 250, y: 200 }
+      config: { model: claude-sonnet-4, temperature: 0.7, max_tokens: 2048, system_prompt: "Generate a high-quality response to the task." }
+      pattern_id: reflection
+      metadata: {}
+    - id: guardrail-1
+      type: guardrail
+      label: Quality Evaluator
+      position: { x: 500, y: 200 }
+      config: { type: output, rules: ["Check factual accuracy", "Verify completeness", "Assess coherence"], action: warn }
+      pattern_id: reflection
+      metadata: {}
+    - id: output-1
+      type: output
+      label: Validated Output
+      position: { x: 750, y: 200 }
+      config: { description: "Quality-assured response" }
+      pattern_id: reflection
+      metadata: {}
+  edges:
+    - id: e-input-generator
+      source: input-1
+      target: llm-generator
+      source_handle: output
+      target_handle: prompt
+      type: data_flow
+      label: null
+    - id: e-generator-guardrail
+      source: llm-generator
+      target: guardrail-1
+      source_handle: response
+      target_handle: content
+      type: data_flow
+      label: null
+    - id: e-guardrail-generator
+      source: guardrail-1
+      target: llm-generator
+      source_handle: blocked
+      target_handle: context
+      type: control_flow
+      label: revision needed
+    - id: e-guardrail-output
+      source: guardrail-1
+      target: output-1
+      source_handle: validated
+      target_handle: input
+      type: data_flow
+      label: null
+eval_profile:
+  tokens_per_step: [300, 900, 2200]
+  steps_per_task: [2, 5, 15]
+  p50_latency_ms: 3000
+  p99_latency_ms: 12000
+  failure_rate: 0.07

@@ -1,0 +1,124 @@
+id: react
+name: ReAct
+category: orchestration
+description: |
+  ReAct (Reasoning + Acting) interleaves chain-of-thought reasoning with
+  tool-calling actions in a loop. At each step the LLM observes the current
+  state, reasons about what to do next, selects and invokes a tool, then
+  incorporates the result before deciding the next action.
+
+  This pattern excels at tasks where the solution path cannot be predetermined.
+  The agent adapts its strategy based on intermediate results, making it ideal
+  for open-ended research, multi-step problem solving, and tasks that require
+  exploration of an unknown environment.
+when_to_use:
+  - Dynamic tasks where the solution path is not predictable
+  - Tasks requiring exploration and adaptation based on intermediate results
+  - Open-ended research or information gathering across multiple sources
+  - Multi-step problem solving where each step depends on prior outcomes
+when_not_to_use:
+  - Predictable workflows with known steps and fixed order
+  - Cost-sensitive applications where token budget is constrained
+  - Simple single-shot tasks that do not require iterative reasoning
+trade_offs:
+  token_cost: high
+  latency: high
+  reliability: medium
+  complexity: medium
+  adaptability: high
+failure_modes:
+  - Infinite reasoning loops without convergence on an answer
+  - Excessive token consumption on simple tasks that could be solved directly
+  - Hallucinating tool results instead of actually invoking the tool
+  - Getting stuck in local optima and failing to explore alternative approaches
+compatible_with:
+  - reflection
+  - routing
+conflicts_with:
+  - plan-execute
+example_graph:
+  nodes:
+    - id: input-1
+      type: input
+      label: User Query
+      position: { x: 0, y: 200 }
+      config: { description: "User's task or question" }
+      pattern_id: react
+      metadata: {}
+    - id: planner-1
+      type: planner
+      label: ReAct Agent
+      position: { x: 250, y: 200 }
+      config: { pattern: react, max_steps: 10 }
+      pattern_id: react
+      metadata: {}
+    - id: tool-search
+      type: tool
+      label: Search Tool
+      position: { x: 500, y: 100 }
+      config: { name: search, description: "Web search", input_schema: {}, timeout_ms: 5000 }
+      pattern_id: react
+      metadata: {}
+    - id: tool-calc
+      type: tool
+      label: Calculator Tool
+      position: { x: 500, y: 300 }
+      config: { name: calculator, description: "Math operations", input_schema: {}, timeout_ms: 2000 }
+      pattern_id: react
+      metadata: {}
+    - id: output-1
+      type: output
+      label: Final Answer
+      position: { x: 750, y: 200 }
+      config: { description: "Agent's final response" }
+      pattern_id: react
+      metadata: {}
+  edges:
+    - id: e-input-planner
+      source: input-1
+      target: planner-1
+      source_handle: output
+      target_handle: goal
+      type: data_flow
+      label: null
+    - id: e-planner-search
+      source: planner-1
+      target: tool-search
+      source_handle: step_results
+      target_handle: tool_call
+      type: tool_call
+      label: null
+    - id: e-search-planner
+      source: tool-search
+      target: planner-1
+      source_handle: tool_result
+      target_handle: goal
+      type: data_flow
+      label: null
+    - id: e-planner-calc
+      source: planner-1
+      target: tool-calc
+      source_handle: step_results
+      target_handle: tool_call
+      type: tool_call
+      label: null
+    - id: e-calc-planner
+      source: tool-calc
+      target: planner-1
+      source_handle: tool_result
+      target_handle: goal
+      type: data_flow
+      label: null
+    - id: e-planner-output
+      source: planner-1
+      target: output-1
+      source_handle: plan
+      target_handle: input
+      type: data_flow
+      label: null
+eval_profile:
+  tokens_per_step: [200, 800, 2000]
+  steps_per_task: [3, 7, 20]
+  p50_latency_ms: 3500
+  p99_latency_ms: 15000
+  failure_rate: 0.08
