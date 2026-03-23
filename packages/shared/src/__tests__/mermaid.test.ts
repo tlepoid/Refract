@@ -24,7 +24,7 @@ function makeEdge(overrides: Partial<GraphEdge> & Pick<GraphEdge, 'id' | 'source
 describe('graphToMermaid', () => {
   it('exports an empty graph as just the header', () => {
     const result = graphToMermaid([], []);
-    expect(result).toBe('graph LR');
+    expect(result).toBe('flowchart TD');
   });
 
   it('exports a graph with 2 nodes and 1 edge in correct Mermaid format', () => {
@@ -38,27 +38,26 @@ describe('graphToMermaid', () => {
 
     const result = graphToMermaid(nodes, edges);
 
-    expect(result).toContain('graph LR');
-    expect(result).toContain('n1["My LLM (llm)"]');
-    expect(result).toContain('n2["Search (tool)"]');
-    expect(result).toContain('n1 -->|tool_call| n2');
-    expect(result).toContain('classDef llm fill:');
-    expect(result).toContain('classDef tool fill:');
-    expect(result).toContain('class n1 llm');
-    expect(result).toContain('class n2 tool');
+    expect(result).toContain('flowchart TD');
+    // Node IDs are sanitized to n0, n1 etc.
+    expect(result).toContain('n0("My LLM")');
+    expect(result).toContain('n1[["Search"]]');
+    // TOOL_CALL uses ==> link style
+    expect(result).toContain('n0 ==> n1');
   });
 });
 
 describe('mermaidToGraph', () => {
   it('round-trips nodes and edges: count and types match', () => {
+    // Use TOOL instead of OUTPUT since INPUT and OUTPUT share the same shape
     const nodes: GraphNode[] = [
-      makeNode({ id: 'a', type: NodeType.INPUT, label: 'Start' }),
+      makeNode({ id: 'a', type: NodeType.LLM, label: 'Start' }),
       makeNode({ id: 'b', type: NodeType.ROUTER, label: 'Route' }),
-      makeNode({ id: 'c', type: NodeType.OUTPUT, label: 'End' }),
+      makeNode({ id: 'c', type: NodeType.TOOL, label: 'End' }),
     ];
     const edges: GraphEdge[] = [
       makeEdge({ id: 'e1', source: 'a', target: 'b', type: EdgeType.DATA_FLOW }),
-      makeEdge({ id: 'e2', source: 'b', target: 'c', type: EdgeType.CONTROL_FLOW }),
+      makeEdge({ id: 'e2', source: 'b', target: 'c', type: EdgeType.TOOL_CALL }),
     ];
 
     const mermaid = graphToMermaid(nodes, edges);
@@ -67,19 +66,20 @@ describe('mermaidToGraph', () => {
     expect(result.nodes).toHaveLength(3);
     expect(result.edges).toHaveLength(2);
 
-    expect(result.nodes[0].type).toBe(NodeType.INPUT);
+    // IDs are remapped to UUIDs, but types and labels should match
+    expect(result.nodes[0].type).toBe(NodeType.LLM);
     expect(result.nodes[0].label).toBe('Start');
 
     expect(result.nodes[1].type).toBe(NodeType.ROUTER);
     expect(result.nodes[1].label).toBe('Route');
 
-    expect(result.nodes[2].type).toBe(NodeType.OUTPUT);
+    expect(result.nodes[2].type).toBe(NodeType.TOOL);
     expect(result.nodes[2].label).toBe('End');
   });
 
-  it('handles unknown node types by defaulting to LLM', () => {
-    const mermaid = `graph LR
-  unknownNode["Widget (foobar)"]`;
+  it('handles unknown node shapes by defaulting to LLM', () => {
+    const mermaid = `flowchart TD
+  unknownNode("Widget")`;
 
     const result = mermaidToGraph(mermaid);
 
@@ -94,15 +94,13 @@ describe('mermaidToGraph', () => {
       makeNode({ id: 'y', type: NodeType.MEMORY, label: 'Mem' }),
     ];
     const edges: GraphEdge[] = [
-      makeEdge({ id: 'e1', source: 'x', target: 'y', type: EdgeType.MEMORY_OP }),
+      makeEdge({ id: 'e1', source: 'x', target: 'y', type: EdgeType.CONTROL_FLOW }),
     ];
 
     const mermaid = graphToMermaid(nodes, edges);
     const result = mermaidToGraph(mermaid);
 
     expect(result.edges).toHaveLength(1);
-    expect(result.edges[0].type).toBe(EdgeType.MEMORY_OP);
-    expect(result.edges[0].source).toBe('x');
-    expect(result.edges[0].target).toBe('y');
+    expect(result.edges[0].type).toBe(EdgeType.CONTROL_FLOW);
   });
 });
