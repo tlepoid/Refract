@@ -2,6 +2,13 @@ import type { GraphNode, GraphEdge, PatternMatch } from './types';
 
 // ── Graph Serialiser ──
 
+/**
+ * Serialize a graph into a compact JSON string suitable for LLM context windows.
+ * Strips position and metadata to minimize token usage.
+ * @param nodes - Array of graph nodes
+ * @param edges - Array of graph edges
+ * @returns Compact JSON string with node ids/types/labels/configs and edge connectivity
+ */
 export function serializeGraphForLLM(
   nodes: GraphNode[],
   edges: GraphEdge[],
@@ -313,6 +320,14 @@ function detectReflection(
   return null;
 }
 
+/**
+ * Identify known agent design patterns in a graph by analyzing node types and
+ * edge topology. Detects: ReAct, Plan-Execute, Multi-Agent Chat, Handoff,
+ * Routing, and Reflection patterns with confidence scores (0.0–1.0).
+ * @param nodes - Array of graph nodes
+ * @param edges - Array of graph edges
+ * @returns Array of pattern matches with confidence scores and involved node IDs
+ */
 export function identifyPatterns(
   nodes: GraphNode[],
   edges: GraphEdge[],

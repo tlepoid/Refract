@@ -47,6 +47,8 @@ export function TimelineSlider() {
 
       <div style={{ flex: 1, position: 'relative', height: 20 }}>
         <input
+          data-testid="timeline-range"
+          aria-label="Timeline scrubber"
           type="range"
           min={0}
           max={totalUpdates - 1}
