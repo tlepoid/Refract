@@ -1,5 +1,5 @@
-import type { GraphNode, GraphEdge } from './index.js';
-import { NodeType, EdgeType } from './index.js';
+import type { GraphNode, GraphEdge } from './types';
+import { NodeType, EdgeType } from './types';
 
 // ── Export: Graph → Mermaid ──
 
@@ -19,7 +19,7 @@ const EDGE_LINK: Record<string, string> = {
   [EdgeType.DATA_FLOW]: '-->',
   [EdgeType.CONTROL_FLOW]: '-.->',
   [EdgeType.TOOL_CALL]: '==>',
-  [EdgeType.MEMORY_OP]: '-.->', // mermaid doesn't have ~~~ for links, use dotted
+  [EdgeType.MEMORY_OP]: '-.->',
 };
 
 export function graphToMermaid(nodes: GraphNode[], edges: GraphEdge[]): string {
@@ -49,7 +49,6 @@ export function graphToMermaid(nodes: GraphNode[], edges: GraphEdge[]): string {
     const link = EDGE_LINK[edge.type] ?? '-->';
     if (edge.label) {
       const escapedLabel = edge.label.replace(/"/g, "'");
-      // Mermaid labeled edge syntax: A -->|label| B
       const linkBase = link.replace('>', '');
       lines.push(`  ${src} ${linkBase}|${escapedLabel}|> ${tgt}`);
     } else {

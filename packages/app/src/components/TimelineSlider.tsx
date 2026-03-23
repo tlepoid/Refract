@@ -14,6 +14,7 @@ export function TimelineSlider() {
 
   return (
     <div
+      data-testid="timeline-slider"
       style={{
         position: 'absolute',
         bottom: 0,
@@ -46,6 +47,8 @@ export function TimelineSlider() {
 
       <div style={{ flex: 1, position: 'relative', height: 20 }}>
         <input
+          data-testid="timeline-range"
+          aria-label="Timeline scrubber"
           type="range"
           min={0}
           max={totalUpdates - 1}
@@ -108,6 +111,7 @@ export function TimelineSlider() {
 
       {isHistoryMode && (
         <button
+          data-testid="timeline-return-to-live"
           onClick={returnToLive}
           style={{
             padding: '4px 12px',

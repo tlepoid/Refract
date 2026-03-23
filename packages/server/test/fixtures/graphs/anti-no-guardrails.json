@@ -1,0 +1,73 @@
+{
+  "name": "anti-no-guardrails",
+  "description": "Anti-pattern: LLM chain with no guardrails. Two LLMs process data in sequence with no safety checks on input or output.",
+  "expectedPatterns": ["handoff"],
+  "expectedRisks": ["no guardrails"],
+  "nodes": [
+    {
+      "id": "input-1",
+      "type": "input",
+      "label": "User Input",
+      "position": { "x": 0, "y": 300 },
+      "config": { "description": "User input" },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "llm-1",
+      "type": "llm",
+      "label": "Generator LLM",
+      "position": { "x": 250, "y": 300 },
+      "config": { "model": "claude-sonnet-4", "temperature": 0.7, "max_tokens": 4096, "system_prompt": "You generate content." },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "llm-2",
+      "type": "llm",
+      "label": "Enhancer LLM",
+      "position": { "x": 500, "y": 300 },
+      "config": { "model": "claude-sonnet-4", "temperature": 0.5, "max_tokens": 4096, "system_prompt": "You enhance content." },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "output-1",
+      "type": "output",
+      "label": "Final Output",
+      "position": { "x": 750, "y": 300 },
+      "config": { "description": "Final output" },
+      "pattern_id": null,
+      "metadata": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-input-llm1",
+      "source": "input-1",
+      "target": "llm-1",
+      "source_handle": "output",
+      "target_handle": "prompt",
+      "type": "data_flow",
+      "label": null
+    },
+    {
+      "id": "e-llm1-llm2",
+      "source": "llm-1",
+      "target": "llm-2",
+      "source_handle": "response",
+      "target_handle": "prompt",
+      "type": "data_flow",
+      "label": "handoff"
+    },
+    {
+      "id": "e-llm2-output",
+      "source": "llm-2",
+      "target": "output-1",
+      "source_handle": "response",
+      "target_handle": "input",
+      "type": "data_flow",
+      "label": null
+    }
+  ]
+}

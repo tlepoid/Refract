@@ -62,6 +62,10 @@ export function EdgeTypeSelector({ position, connection, onSelect, onCancel }: E
   return (
     <div
       ref={ref}
+      data-testid="edge-type-selector"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Select edge type"
       style={{
         position: 'fixed',
         left: position.x,
@@ -77,6 +81,7 @@ export function EdgeTypeSelector({ position, connection, onSelect, onCancel }: E
       {EDGE_OPTIONS.map((opt) => (
         <button
           key={opt.type}
+          data-testid={`edge-type-${opt.type}`}
           onClick={() => onSelect(opt.type)}
           style={{
             display: 'block',

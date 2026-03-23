@@ -1,4 +1,4 @@
-import type { GraphNode, GraphEdge, Pattern, Scorecard } from './index.js';
+import type { GraphNode, GraphEdge, Pattern, Scorecard } from './types';
 
 // ── Model pricing (USD per million tokens) ──
 
@@ -125,6 +125,20 @@ function getNodeProfile(
 
 // ── Main eval function ──
 
+/**
+ * Evaluate a graph and produce a scorecard with cost, latency, reliability, and
+ * complexity metrics.
+ *
+ * Cost is computed from LLM/Planner node token estimates multiplied by model pricing
+ * (40% input / 60% output token split assumption). Latency uses the longest
+ * input→output path. Reliability is the product of (1 − failure_rate) across
+ * compute nodes. Complexity is a weighted sum of node types.
+ *
+ * @param nodes - Array of graph nodes
+ * @param edges - Array of graph edges
+ * @param patternProfiles - Map of pattern IDs to their eval profiles (token/latency/failure estimates)
+ * @returns Scorecard with cost (min/median/max USD), latency (p50/p99 ms), reliability (0–1), and complexity
+ */
 export function evaluateGraph(
   nodes: GraphNode[],
   edges: GraphEdge[],

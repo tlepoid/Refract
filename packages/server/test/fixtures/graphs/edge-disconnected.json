@@ -1,0 +1,64 @@
+{
+  "name": "edge-disconnected",
+  "description": "Edge case: two disconnected subgraphs. One connected pipeline (input -> llm -> output) and one isolated tool node with no edges.",
+  "expectedPatterns": [],
+  "expectedRisks": ["disconnected graph"],
+  "nodes": [
+    {
+      "id": "input-1",
+      "type": "input",
+      "label": "User Input",
+      "position": { "x": 0, "y": 200 },
+      "config": { "description": "User input" },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "llm-1",
+      "type": "llm",
+      "label": "Main LLM",
+      "position": { "x": 250, "y": 200 },
+      "config": { "model": "claude-sonnet-4", "temperature": 0.7, "max_tokens": 4096, "system_prompt": "You process requests." },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "output-1",
+      "type": "output",
+      "label": "Final Output",
+      "position": { "x": 500, "y": 200 },
+      "config": { "description": "Final output" },
+      "pattern_id": null,
+      "metadata": {}
+    },
+    {
+      "id": "tool-orphan",
+      "type": "tool",
+      "label": "Orphaned Tool",
+      "position": { "x": 250, "y": 500 },
+      "config": { "name": "orphan", "description": "Disconnected tool with no edges", "input_schema": {}, "timeout_ms": 30000 },
+      "pattern_id": null,
+      "metadata": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-input-llm",
+      "source": "input-1",
+      "target": "llm-1",
+      "source_handle": "output",
+      "target_handle": "prompt",
+      "type": "data_flow",
+      "label": null
+    },
+    {
+      "id": "e-llm-output",
+      "source": "llm-1",
+      "target": "output-1",
+      "source_handle": "response",
+      "target_handle": "input",
+      "type": "data_flow",
+      "label": null
+    }
+  ]
+}
