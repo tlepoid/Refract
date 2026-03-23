@@ -33,7 +33,7 @@ export function getPatternById(id: string): Pattern | undefined {
   return patternCache.get(id);
 }
 
-export const patternRouter = Router();
+export const patternRouter: ReturnType<typeof Router> = Router();
 
 patternRouter.get('/api/patterns', (_req, res) => {
   const patterns = getPatterns().map((p) => ({

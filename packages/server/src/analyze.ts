@@ -8,7 +8,7 @@ import {
 import type { GraphNode, GraphEdge } from '@refract/shared';
 import { getPatternById, getPatterns } from './patterns.js';
 
-export const analyzeRouter = Router();
+export const analyzeRouter: ReturnType<typeof Router> = Router();
 
 const client = new Anthropic();
 
@@ -166,7 +166,7 @@ const tools: Anthropic.Tool[] = [
 function buildSystemPrompt(
   serializedGraph: string,
   matchedPatterns: { patternId: string; confidence: number }[],
-  scores: Record<string, unknown> | null,
+  scores: object | null,
 ): string {
   let patternsSection = 'None identified';
   if (matchedPatterns.length > 0) {

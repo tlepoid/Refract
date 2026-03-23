@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { evaluateGraph } from '@refract/shared';
 import { getPatterns } from './patterns.js';
 
-export const evalRouter = Router();
+export const evalRouter: ReturnType<typeof Router> = Router();
 
 evalRouter.post('/api/eval', (req, res) => {
   const { graph } = req.body;
