@@ -1,6 +1,7 @@
 import express from 'express';
 import { loadPatterns, patternRouter } from './patterns.js';
 import { evalRouter } from './eval-api.js';
+import { analyzeRouter } from './analyze.js';
 
 const app = express();
 const PORT = 4000;
@@ -13,6 +14,7 @@ app.get('/health', (_req, res) => {
 
 app.use(patternRouter);
 app.use(evalRouter);
+app.use(analyzeRouter);
 
 loadPatterns();
 
