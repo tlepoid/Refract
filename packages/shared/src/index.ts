@@ -114,6 +114,32 @@ export interface CanvasDocument {
   updated_at: string;
 }
 
+// ── Comment & decision types ──
+
+export interface CommentMessage {
+  id: string;
+  author: string;
+  text: string;
+  timestamp: string;
+}
+
+export interface CommentThread {
+  id: string;
+  anchor: { type: 'node'; id: string };
+  status: 'open' | 'resolved' | 'wontfix';
+  messages: CommentMessage[];
+}
+
+export interface DecisionRecord {
+  id: string;
+  timestamp: string;
+  author: string;
+  thread_id: string;
+  summary: string;
+  rationale: string;
+  node_ids: string[];
+}
+
 // ── Handle definitions ──
 
 export interface HandleDef {
