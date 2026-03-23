@@ -1,5 +1,6 @@
 export { serializeGraphForLLM, identifyPatterns } from './serializer';
 export { evaluateGraph } from './eval';
+export { graphToMermaid, mermaidToGraph } from './mermaid';
 
 // ── Enums ──
 

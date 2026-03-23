@@ -23,10 +23,14 @@ import { edgeTypes } from './edges/edgeTypes';
 import { EdgeTypeSelector } from './EdgeTypeSelector';
 import { isValidConnection } from './connectionValidation';
 import { NodePalette } from '../panels/NodePalette';
-import { PropertiesPanel } from '../panels/PropertiesPanel';
+import { RightSidebar } from '../panels/RightSidebar';
 import { ShortcutOverlay } from './ShortcutOverlay';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { pushSnapshot } from '../../stores/undoRedoMiddleware';
+import { useGhostElements, SuggestionActions } from './SuggestionOverlay';
+import { MermaidModal } from '../panels/MermaidModal';
+import { ComparisonMode } from './ComparisonMode';
+import { useComparisonStore } from '../../stores/comparisonStore';
 import type { BaseNodeData } from './BaseNode';
 
 const rfNodeTypes = getReactFlowNodeTypes();
@@ -76,22 +80,36 @@ function CanvasInner() {
   const setSelectedNodes = useGraphStore((s) => s.setSelectedNodes);
   const setSelectedEdges = useGraphStore((s) => s.setSelectedEdges);
 
+  const { ghostNodes, ghostEdges, removedNodeIds } = useGhostElements();
+
+  const [mermaidModal, setMermaidModal] = useState<'export' | 'import' | null>(null);
+
   const [pendingConnection, setPendingConnection] = useState<{
     connection: PendingConnection;
     position: { x: number; y: number };
   } | null>(null);
 
-  const rfNodes: Node[] = useMemo(
-    () =>
-      nodes.map((n) => {
-        const rfn = toReactFlowNode(n);
-        rfn.selected = selectedNodeIds.includes(n.id);
-        return rfn;
-      }),
-    [nodes, selectedNodeIds],
-  );
+  const rfNodes: Node[] = useMemo(() => {
+    const base = nodes.map((n) => {
+      const rfn = toReactFlowNode(n);
+      rfn.selected = selectedNodeIds.includes(n.id);
+      if (removedNodeIds.has(n.id)) {
+        rfn.style = {
+          ...rfn.style,
+          opacity: 0.4,
+          outline: '2px dashed #F87171',
+          outlineOffset: 4,
+        };
+      }
+      return rfn;
+    });
+    return [...base, ...ghostNodes];
+  }, [nodes, selectedNodeIds, ghostNodes, removedNodeIds]);
 
-  const rfEdges: Edge[] = useMemo(() => edges.map(toReactFlowEdge), [edges]);
+  const rfEdges: Edge[] = useMemo(
+    () => [...edges.map(toReactFlowEdge), ...ghostEdges],
+    [edges, ghostEdges],
+  );
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
@@ -237,6 +255,50 @@ function CanvasInner() {
       <NodePalette />
 
       <div style={{ flex: 1, position: 'relative' }}>
+        {/* Toolbar */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: 12,
+            zIndex: 10,
+            display: 'flex',
+            gap: 4,
+            background: '#1A1A2E',
+            borderRadius: 8,
+            border: '1px solid #2D2D3F',
+            padding: 4,
+          }}
+        >
+          <button
+            onClick={() => setMermaidModal('export')}
+            style={toolbarButtonStyle}
+            title="Export Mermaid"
+          >
+            Export
+          </button>
+          <button
+            onClick={() => setMermaidModal('import')}
+            style={toolbarButtonStyle}
+            title="Import Mermaid"
+          >
+            Import
+          </button>
+          <div style={{ width: 1, background: '#2D2D3F', margin: '2px 0' }} />
+          <button
+            onClick={() => {
+              const { nodes, edges } = useGraphStore.getState();
+              if (nodes.length > 0) {
+                useComparisonStore.getState().startComparison(nodes, edges);
+              }
+            }}
+            style={toolbarButtonStyle}
+            title="Compare designs"
+          >
+            Compare
+          </button>
+        </div>
+
         <ReactFlow
           nodes={rfNodes}
           edges={rfEdges}
@@ -276,6 +338,8 @@ function CanvasInner() {
           />
         </ReactFlow>
 
+        <SuggestionActions />
+
         {pendingConnection && (
           <EdgeTypeSelector
             position={pendingConnection.position}
@@ -286,14 +350,35 @@ function CanvasInner() {
         )}
       </div>
 
-      <PropertiesPanel />
+      <RightSidebar />
 
       {showOverlay && <ShortcutOverlay onClose={() => setShowOverlay(false)} />}
+
+      {mermaidModal && (
+        <MermaidModal mode={mermaidModal} onClose={() => setMermaidModal(null)} />
+      )}
     </div>
   );
 }
 
+const toolbarButtonStyle: React.CSSProperties = {
+  padding: '6px 12px',
+  background: 'transparent',
+  color: '#94A3B8',
+  border: 'none',
+  borderRadius: 6,
+  fontSize: 12,
+  fontWeight: 500,
+  cursor: 'pointer',
+};
+
 export function Canvas() {
+  const comparisonActive = useComparisonStore((s) => s.active);
+
+  if (comparisonActive) {
+    return <ComparisonMode />;
+  }
+
   return (
     <ReactFlowProvider>
       <CanvasInner />
