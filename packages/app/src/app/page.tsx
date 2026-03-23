@@ -1,5 +1,9 @@
-import type { GraphNode } from '@refract/shared';
+import CanvasView from '@/components/CanvasView';
 
 export default function Home() {
-  return <main></main>;
+  return (
+    <main>
+      <CanvasView />
+    </main>
+  );
 }
