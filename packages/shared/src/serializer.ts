@@ -1,4 +1,4 @@
-import type { GraphNode, GraphEdge, PatternMatch } from './index.js';
+import type { GraphNode, GraphEdge, PatternMatch } from './types';
 
 // ── Graph Serialiser ──
 
