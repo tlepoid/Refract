@@ -28,6 +28,7 @@ import { ShortcutOverlay } from './ShortcutOverlay';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { pushSnapshot } from '../../stores/undoRedoMiddleware';
 import { useGhostElements, SuggestionActions } from './SuggestionOverlay';
+import { MermaidModal } from '../panels/MermaidModal';
 import type { BaseNodeData } from './BaseNode';
 
 const rfNodeTypes = getReactFlowNodeTypes();
@@ -78,6 +79,8 @@ function CanvasInner() {
   const setSelectedEdges = useGraphStore((s) => s.setSelectedEdges);
 
   const { ghostNodes, ghostEdges, removedNodeIds } = useGhostElements();
+
+  const [mermaidModal, setMermaidModal] = useState<'export' | 'import' | null>(null);
 
   const [pendingConnection, setPendingConnection] = useState<{
     connection: PendingConnection;
@@ -250,6 +253,37 @@ function CanvasInner() {
       <NodePalette />
 
       <div style={{ flex: 1, position: 'relative' }}>
+        {/* Toolbar */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: 12,
+            zIndex: 10,
+            display: 'flex',
+            gap: 4,
+            background: '#1A1A2E',
+            borderRadius: 8,
+            border: '1px solid #2D2D3F',
+            padding: 4,
+          }}
+        >
+          <button
+            onClick={() => setMermaidModal('export')}
+            style={toolbarButtonStyle}
+            title="Export Mermaid"
+          >
+            Export
+          </button>
+          <button
+            onClick={() => setMermaidModal('import')}
+            style={toolbarButtonStyle}
+            title="Import Mermaid"
+          >
+            Import
+          </button>
+        </div>
+
         <ReactFlow
           nodes={rfNodes}
           edges={rfEdges}
@@ -304,9 +338,24 @@ function CanvasInner() {
       <RightSidebar />
 
       {showOverlay && <ShortcutOverlay onClose={() => setShowOverlay(false)} />}
+
+      {mermaidModal && (
+        <MermaidModal mode={mermaidModal} onClose={() => setMermaidModal(null)} />
+      )}
     </div>
   );
 }
+
+const toolbarButtonStyle: React.CSSProperties = {
+  padding: '6px 12px',
+  background: 'transparent',
+  color: '#94A3B8',
+  border: 'none',
+  borderRadius: 6,
+  fontSize: 12,
+  fontWeight: 500,
+  cursor: 'pointer',
+};
 
 export function Canvas() {
   return (
