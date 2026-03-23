@@ -22,6 +22,7 @@ import { RemoteCursors } from './RemoteCursors';
 import { UserPresenceList } from './UserPresenceList';
 import { CommentThreadPopover } from './CommentThread';
 import { DecisionLogPanel } from './DecisionLogPanel';
+import { TimelineSlider } from './TimelineSlider';
 import type { CommentThread } from '@refract/shared';
 
 function CanvasInner() {
@@ -232,6 +233,9 @@ function CanvasInner() {
           />
         </div>
       )}
+      {/* Timeline slider */}
+      <TimelineSlider />
+
       {/* Decision log toggle */}
       <button
         onClick={() => {
