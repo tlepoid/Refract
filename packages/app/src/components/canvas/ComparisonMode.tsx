@@ -341,7 +341,7 @@ Provide a narrative comparison of the two designs: which is better for cost, lat
             <Markdown>{narrative}</Markdown>
           ) : (
             <div style={{ color: '#64748B', fontSize: 12 }}>
-              Click "AI Compare" to generate a comparison narrative
+              Click &quot;AI Compare&quot; to generate a comparison narrative
             </div>
           )}
         </div>

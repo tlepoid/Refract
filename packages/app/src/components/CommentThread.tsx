@@ -131,7 +131,7 @@ export function CommentThreadPopover({ thread, onReply, onResolve, onWontfix, on
                 fontSize: 12,
               }}
             >
-              Won't Fix
+              Won&apos;t Fix
             </button>
           </div>
         </>
