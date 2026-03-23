@@ -1,0 +1,66 @@
+name: PR
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      shared: ${{ steps.filter.outputs.shared }}
+      app: ${{ steps.filter.outputs.app }}
+      server: ${{ steps.filter.outputs.server }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            shared:
+              - 'packages/shared/**'
+            app:
+              - 'packages/app/**'
+              - 'packages/shared/**'
+            server:
+              - 'packages/server/**'
+              - 'packages/shared/**'
+
+  size:
+    name: Bundle size
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build app
+        run: pnpm --filter @refract/shared build && pnpm --filter @refract/app build
+
+      - name: Report bundle size
+        run: |
+          echo "## Bundle Size" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          find packages/app/.next -name '*.js' -type f | xargs du -sh | sort -rh | head -20 >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          TOTAL=$(find packages/app/.next -name '*.js' -type f -exec du -cb {} + | tail -1 | cut -f1)
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Total JS:** $(echo "$TOTAL" | numfmt --to=iec-i --suffix=B)" >> "$GITHUB_STEP_SUMMARY"
