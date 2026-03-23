@@ -83,7 +83,7 @@ export function NodePalette() {
       </button>
 
       {leftPanelOpen && (
-        <div role="list" aria-label="Available nodes" style={{ padding: '0 12px 12px', overflowY: 'auto', flex: 1 }}>
+        <div role="list" aria-label="Available nodes" tabIndex={0} style={{ padding: '0 12px 12px', overflowY: 'auto', flex: 1 }}>
           {NODE_GROUPS.map((group) => (
             <div key={group.label} data-testid={`palette-group-${group.label.toLowerCase()}`} style={{ marginBottom: 16 }}>
               <div

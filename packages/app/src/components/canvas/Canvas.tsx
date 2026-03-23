@@ -258,6 +258,7 @@ function CanvasInner() {
       <div style={{ flex: 1, position: 'relative' }}>
         {/* Toolbar */}
         <div
+          data-testid="canvas-toolbar"
           style={{
             position: 'absolute',
             top: 12,
@@ -272,6 +273,7 @@ function CanvasInner() {
           }}
         >
           <button
+            data-testid="export-mermaid-btn"
             onClick={() => setMermaidModal('export')}
             style={toolbarButtonStyle}
             title="Export Mermaid"
@@ -279,6 +281,7 @@ function CanvasInner() {
             Export
           </button>
           <button
+            data-testid="import-mermaid-btn"
             onClick={() => setMermaidModal('import')}
             style={toolbarButtonStyle}
             title="Import Mermaid"
@@ -299,6 +302,8 @@ function CanvasInner() {
             Compare
           </button>
         </div>
+
+        <ForkPanel />
 
         <ReactFlow
           aria-label="Agent design canvas"

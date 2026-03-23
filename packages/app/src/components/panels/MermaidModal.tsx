@@ -21,9 +21,10 @@ function ExportView({ onClose }: { onClose: () => void }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <h3 style={{ margin: 0, fontSize: 16, color: '#E2E8F0' }}>Export Mermaid</h3>
-        <button onClick={onClose} style={closeButtonStyle}>X</button>
+        <button onClick={onClose} style={closeButtonStyle} data-testid="mermaid-close-btn">X</button>
       </div>
       <textarea
+        data-testid="mermaid-textarea"
         readOnly
         value={mermaid}
         style={{
@@ -32,7 +33,7 @@ function ExportView({ onClose }: { onClose: () => void }) {
         }}
       />
       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-        <button onClick={handleCopy} style={primaryButtonStyle}>
+        <button onClick={handleCopy} style={primaryButtonStyle} data-testid="mermaid-copy-btn">
           {copied ? 'Copied!' : 'Copy to Clipboard'}
         </button>
       </div>
@@ -66,9 +67,10 @@ function ImportView({ onClose }: { onClose: () => void }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <h3 style={{ margin: 0, fontSize: 16, color: '#E2E8F0' }}>Import Mermaid</h3>
-        <button onClick={onClose} style={closeButtonStyle}>X</button>
+        <button onClick={onClose} style={closeButtonStyle} data-testid="mermaid-close-btn">X</button>
       </div>
       <textarea
+        data-testid="mermaid-textarea"
         value={input}
         onChange={(e) => {
           setInput(e.target.value);
@@ -85,6 +87,7 @@ function ImportView({ onClose }: { onClose: () => void }) {
       )}
       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
         <button
+          data-testid="mermaid-import-btn"
           onClick={handleImport}
           disabled={!input.trim()}
           style={{
@@ -112,6 +115,10 @@ export function MermaidModal({
 }) {
   return (
     <div
+      data-testid="mermaid-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label={mode === 'export' ? 'Export Mermaid' : 'Import Mermaid'}
       style={{
         position: 'fixed',
         inset: 0,

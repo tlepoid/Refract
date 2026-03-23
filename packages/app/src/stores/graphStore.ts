@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import * as Y from 'yjs';
 import type { GraphNode, GraphEdge } from '@refract/shared';
+import { pushSnapshot, undo as localUndo, redo as localRedo } from './undoRedoMiddleware';
 
 // ── State interfaces ──
 
@@ -322,6 +323,8 @@ export const useGraphStore = create<GraphStore>()((set, get) => ({
       });
       set({ selectedNodeIds: [], selectedEdgeIds: [] });
     } else {
+      const { nodes, edges } = get();
+      pushSnapshot(nodes, edges);
       set((s) => ({
         nodes: s.nodes.filter((n) => !selectedNodeIds.includes(n.id)),
         edges: s.edges.filter(
@@ -404,8 +407,24 @@ export const useGraphStore = create<GraphStore>()((set, get) => ({
   },
 
   // ── Undo/Redo ──
-  undo: () => _undoManager?.undo(),
-  redo: () => _undoManager?.redo(),
+  undo: () => {
+    if (_undoManager) {
+      _undoManager.undo();
+    } else {
+      const { nodes, edges } = get();
+      const snapshot = localUndo(nodes, edges);
+      if (snapshot) set({ nodes: snapshot.nodes, edges: snapshot.edges });
+    }
+  },
+  redo: () => {
+    if (_undoManager) {
+      _undoManager.redo();
+    } else {
+      const { nodes, edges } = get();
+      const snapshot = localRedo(nodes, edges);
+      if (snapshot) set({ nodes: snapshot.nodes, edges: snapshot.edges });
+    }
+  },
 
   // ── UI ──
   setLeftPanelOpen: (open) => set({ leftPanelOpen: open }),

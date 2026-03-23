@@ -173,19 +173,12 @@ export class CanvasPage {
     const targetY = paneBox.y + paneBox.height / 2;
 
     // Dispatch synthetic drag events with DataTransfer containing the node type.
-    // The onDrop handler is on the wrapper div that parents ReactFlow, so we
-    // target the closest ancestor of .react-flow__pane that has the handler.
+    // ReactFlow attaches onDrop/onDragOver to its own wrapper element (.react-flow).
     await this.page.evaluate(
       ({ nodeType, targetX, targetY }) => {
-        const paneEl = document.querySelector('.react-flow__pane');
-        if (!paneEl) throw new Error('Canvas pane element not found');
-
-        // Walk up to the div that carries the onDrop handler -- ReactFlow's
-        // parent wrapper created by CanvasInner.
-        const dropTarget =
-          paneEl.closest('[data-testid="canvas-container"]')?.querySelector(':scope > div:nth-child(2)')
-          ?? paneEl.parentElement
-          ?? paneEl;
+        // The .react-flow element is the ReactFlow wrapper that has onDrop/onDragOver
+        const dropTarget = document.querySelector('.react-flow');
+        if (!dropTarget) throw new Error('ReactFlow wrapper not found');
 
         const dataTransfer = new DataTransfer();
         dataTransfer.setData('application/refract-node-type', nodeType);
