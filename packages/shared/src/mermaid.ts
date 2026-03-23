@@ -1,5 +1,5 @@
-import type { GraphNode, GraphEdge } from './index.js';
-import { NodeType, EdgeType } from './index.js';
+import type { GraphNode, GraphEdge } from './types';
+import { NodeType, EdgeType } from './types';
 
 // ── Export: Graph → Mermaid ──
 

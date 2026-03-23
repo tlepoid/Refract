@@ -1,4 +1,4 @@
-import type { GraphNode, GraphEdge, Pattern, Scorecard } from './index.js';
+import type { GraphNode, GraphEdge, Pattern, Scorecard } from './types';
 
 // ── Model pricing (USD per million tokens) ──
 
